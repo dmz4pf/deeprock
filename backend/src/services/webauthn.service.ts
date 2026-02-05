@@ -15,6 +15,7 @@ import { PrismaClient } from "@prisma/client";
 import { Redis } from "ioredis";
 import { SignJWT, jwtVerify } from "jose";
 import crypto from "crypto";
+import { encode as cborEncode, decode as cborDecode } from "cbor-x";
 
 const prisma = new PrismaClient();
 
@@ -67,14 +68,16 @@ export class WebAuthnService {
    * Generate registration options for a new user
    */
   async generateRegistrationOptions(email: string, displayName?: string) {
-    // Check if user already exists with biometrics
+    // Check if user already has biometrics registered
     const existingUser = await prisma.user.findUnique({
       where: { email },
       include: { biometricIdentities: { where: { isActive: true } } },
     });
 
-    if (existingUser?.biometricIdentities.length) {
-      throw new Error("User already registered with biometrics");
+    // Allow up to 10 passkeys per account (for backup devices)
+    const MAX_PASSKEYS = 10;
+    if (existingUser?.biometricIdentities.length && existingUser.biometricIdentities.length >= MAX_PASSKEYS) {
+      throw new Error(`Maximum ${MAX_PASSKEYS} passkeys allowed per account`);
     }
 
     // Generate unique user ID for WebAuthn
@@ -141,18 +144,94 @@ export class WebAuthnService {
       throw new Error("Registration verification failed");
     }
 
-    const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } =
+    // SimpleWebAuthn v10+: credentialID is already a base64url string
+    const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp, aaguid } =
       verification.registrationInfo;
+    const credentialId = credentialID; // Already base64url encoded, no Buffer conversion needed
+
+    // Convert AAGUID to hex string for storage (identifies authenticator model)
+    const aaguidHex = aaguid ? Buffer.from(aaguid).toString('hex') : null;
+
+    console.log("[DEBUG] Registration verified successfully");
+    console.log("[DEBUG] credentialID:", credentialId);
+    console.log("[DEBUG] credentialPublicKey length:", credentialPublicKey.length);
+    console.log("[DEBUG] credentialPublicKey (hex):", Buffer.from(credentialPublicKey).toString('hex'));
 
     // Extract P-256 public key coordinates from COSE format
     const publicKey = this.extractP256PublicKey(credentialPublicKey);
+    console.log("[DEBUG] Extracted X:", publicKey.x);
+    console.log("[DEBUG] Extracted Y:", publicKey.y);
+    console.log("[DEBUG] X length (hex chars):", publicKey.x.replace('0x', '').length);
+    console.log("[DEBUG] Y length (hex chars):", publicKey.y.replace('0x', '').length);
 
-    // Create user and biometric identity atomically
+    // Create user and biometric identity atomically (or link to existing user)
     const user = await prisma.$transaction(async (tx) => {
       // Derive deterministic wallet address from public key
       const walletAddress = this.deriveWalletAddress(publicKey.x, publicKey.y);
 
-      // Check if wallet address already exists
+      // Check if user already exists (e.g., from Google OAuth)
+      const existingUser = await tx.user.findUnique({
+        where: { email },
+        include: { biometricIdentities: { where: { isActive: true } } },
+      });
+
+      if (existingUser) {
+        // User exists - link biometric to existing account (up to MAX_PASSKEYS)
+        const MAX_PASSKEYS = 10;
+        if (existingUser.biometricIdentities.length >= MAX_PASSKEYS) {
+          throw new Error(`Maximum ${MAX_PASSKEYS} passkeys allowed per account`);
+        }
+
+        // Add biometric identity to existing user
+        const biometric = await tx.biometricIdentity.create({
+          data: {
+            userId: existingUser.id,
+            credentialId, // Already base64url from SimpleWebAuthn v10
+            publicKeyX: publicKey.x,
+            publicKeyY: publicKey.y,
+            authCounter: counter,
+            deviceInfo: {
+              deviceType: credentialDeviceType,
+              backedUp: credentialBackedUp,
+              transports: response.response.transports,
+            },
+            aaguid: aaguidHex,
+            deviceName: `${credentialDeviceType} device`,
+          },
+        });
+
+        // Update wallet address if user doesn't have one
+        if (!existingUser.walletAddress) {
+          await tx.user.update({
+            where: { id: existingUser.id },
+            data: { walletAddress },
+          });
+        }
+
+        // Create audit log
+        await tx.auditLog.create({
+          data: {
+            action: "BIOMETRIC_LINK",
+            userId: existingUser.id,
+            resourceType: "BiometricIdentity",
+            resourceId: biometric.id,
+            status: "SUCCESS",
+            metadata: {
+              email,
+              credentialDeviceType,
+              credentialBackedUp,
+              linkedToExistingAccount: true,
+            },
+          },
+        });
+
+        return tx.user.findUnique({
+          where: { id: existingUser.id },
+          include: { biometricIdentities: true },
+        });
+      }
+
+      // Check if wallet address already exists (for new user)
       const existingWallet = await tx.user.findUnique({
         where: { walletAddress },
       });
@@ -160,6 +239,7 @@ export class WebAuthnService {
         throw new Error("Wallet address already registered");
       }
 
+      // Create new user with biometric
       const newUser = await tx.user.create({
         data: {
           email,
@@ -167,7 +247,7 @@ export class WebAuthnService {
           walletAddress,
           biometricIdentities: {
             create: {
-              credentialId: Buffer.from(credentialID).toString("base64url"),
+              credentialId, // Already base64url from SimpleWebAuthn v10
               publicKeyX: publicKey.x,
               publicKeyY: publicKey.y,
               authCounter: counter,
@@ -176,6 +256,8 @@ export class WebAuthnService {
                 backedUp: credentialBackedUp,
                 transports: response.response.transports,
               },
+              aaguid: aaguidHex,
+              deviceName: `${credentialDeviceType} device`,
             },
           },
         },
@@ -204,6 +286,10 @@ export class WebAuthnService {
     // Clean up challenge
     await this.redis.del(`webauthn:challenge:${challengeId}`);
 
+    if (!user) {
+      throw new Error("Failed to create or retrieve user");
+    }
+
     return {
       user: {
         id: user.id,
@@ -218,37 +304,49 @@ export class WebAuthnService {
 
   /**
    * Generate authentication options for existing user
+   * If email is not provided, uses discoverable credentials (resident keys)
    */
-  async generateAuthenticationOptions(email: string) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { biometricIdentities: { where: { isActive: true } } },
-    });
+  async generateAuthenticationOptions(email?: string) {
+    let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] | undefined;
 
-    if (!user || !user.biometricIdentities.length) {
-      throw new Error("User not found or no registered credentials");
-    }
+    if (email) {
+      // Email provided - look up user's credentials
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: { biometricIdentities: { where: { isActive: true } } },
+      });
 
-    const options = await generateAuthenticationOptions({
-      rpID: RP_ID,
-      allowCredentials: user.biometricIdentities.map((cred) => ({
+      if (!user || !user.biometricIdentities.length) {
+        throw new Error("User not found or no registered credentials");
+      }
+
+      allowCredentials = user.biometricIdentities.map((cred) => ({
         id: cred.credentialId, // Already base64url string
         transports: (cred.deviceInfo as Record<string, unknown>)?.transports as
           | AuthenticatorTransportFuture[]
           | undefined,
-      })),
+      }));
+    }
+    // If no email, allowCredentials is undefined - enables discoverable credentials
+
+    const options = await generateAuthenticationOptions({
+      rpID: RP_ID,
+      allowCredentials,
       userVerification: "required",
     });
 
     // Store challenge
+    // Note: For discoverable credentials, we don't have userId yet - it will be resolved during verification
     const challengeId = crypto.randomUUID();
     await this.redis.setex(
       `webauthn:challenge:${challengeId}`,
       CHALLENGE_TTL,
       JSON.stringify({
         challenge: options.challenge,
-        userId: user.id,
+        // Only include userId if we have specific credentials (non-discoverable flow)
+        ...(allowCredentials && email ? { userId: (await prisma.user.findUnique({ where: { email }, select: { id: true } }))?.id } : {}),
         type: "authentication",
+        discoverable: !email, // Flag for discoverable credential flow
         createdAt: Date.now(),
       })
     );
@@ -263,39 +361,90 @@ export class WebAuthnService {
     challengeId: string,
     response: AuthenticationResponseJSON
   ): Promise<AuthenticationResult> {
+    console.log("[DEBUG] ========== VERIFY AUTHENTICATION START ==========");
+    console.log("[DEBUG] challengeId:", challengeId);
+    console.log("[DEBUG] response.id (credential ID from browser):", response.id);
+    console.log("[DEBUG] response.id length:", response.id.length);
+    console.log("[DEBUG] response.rawId:", response.rawId);
+    console.log("[DEBUG] response.type:", response.type);
+
     const stored = await this.redis.get(`webauthn:challenge:${challengeId}`);
     if (!stored) {
+      console.log("[DEBUG] Challenge not found in Redis");
       throw new Error("Challenge expired or not found");
     }
 
-    const { challenge, userId } = JSON.parse(stored);
+    const { challenge, userId, discoverable } = JSON.parse(stored);
+    console.log("[DEBUG] Challenge found - discoverable:", discoverable, "userId:", userId);
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { biometricIdentities: { where: { isActive: true } } },
-    });
+    let user;
+    let credential;
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (discoverable) {
+      // Discoverable credentials flow - look up user by credential ID
+      console.log("[DEBUG] Discoverable auth - looking for credential ID:", response.id);
+      credential = await prisma.biometricIdentity.findFirst({
+        where: { credentialId: response.id, isActive: true },
+        include: { user: { include: { biometricIdentities: { where: { isActive: true } } } } },
+      });
 
-    // Find matching credential
-    const credential = user.biometricIdentities.find(
-      (c) => c.credentialId === response.id
-    );
+      if (!credential) {
+        const allCreds = await prisma.biometricIdentity.findMany({ select: { credentialId: true } });
+        console.log("[DEBUG] No matching credential found.");
+        console.log("[DEBUG] Looking for:", response.id);
+        console.log("[DEBUG] Stored credentials:", allCreds.map(c => c.credentialId));
+        console.log("[DEBUG] Comparison:");
+        allCreds.forEach(c => {
+          console.log(`  "${c.credentialId}" === "${response.id}" ? ${c.credentialId === response.id}`);
+          console.log(`  lengths: stored=${c.credentialId.length}, browser=${response.id.length}`);
+        });
+        throw new Error("Passkey not registered with this app. Please register first.");
+      }
+      console.log("[DEBUG] Credential found for discoverable auth");
+      user = credential.user;
+    } else {
+      // Traditional flow - use stored userId
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { biometricIdentities: { where: { isActive: true } } },
+      });
 
-    if (!credential) {
-      throw new Error("Credential not found");
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Find matching credential
+      credential = user.biometricIdentities.find(
+        (c) => c.credentialId === response.id
+      );
+
+      if (!credential) {
+        throw new Error("Credential not found");
+      }
     }
 
     // Reconstruct public key for verification
+    console.log("[DEBUG] Reconstructing public key from stored coordinates");
+    console.log("[DEBUG] publicKeyX:", credential.publicKeyX);
+    console.log("[DEBUG] publicKeyY:", credential.publicKeyY);
+
     const publicKeyBuffer = this.reconstructPublicKey(
       credential.publicKeyX,
       credential.publicKeyY
     );
+    console.log("[DEBUG] Reconstructed COSE key length:", publicKeyBuffer.length);
+    console.log("[DEBUG] Reconstructed COSE key (hex):", Buffer.from(publicKeyBuffer).toString('hex'));
 
-    const verification: VerifiedAuthenticationResponse =
-      await verifyAuthenticationResponse({
+    console.log("[DEBUG] Calling verifyAuthenticationResponse with:");
+    console.log("[DEBUG]   expectedChallenge:", challenge);
+    console.log("[DEBUG]   expectedOrigin:", ORIGIN);
+    console.log("[DEBUG]   expectedRPID:", RP_ID);
+    console.log("[DEBUG]   authenticator.credentialID:", credential.credentialId);
+    console.log("[DEBUG]   authenticator.counter:", credential.authCounter);
+
+    let verification: VerifiedAuthenticationResponse;
+    try {
+      verification = await verifyAuthenticationResponse({
         response,
         expectedChallenge: challenge,
         expectedOrigin: ORIGIN,
@@ -308,6 +457,12 @@ export class WebAuthnService {
           transports: (credential.deviceInfo as Record<string, unknown>)?.transports as AuthenticatorTransportFuture[] | undefined,
         },
       });
+      console.log("[DEBUG] verifyAuthenticationResponse result:", verification);
+    } catch (verifyError: any) {
+      console.log("[DEBUG] verifyAuthenticationResponse THREW ERROR:", verifyError.message);
+      console.log("[DEBUG] Error stack:", verifyError.stack);
+      throw verifyError;
+    }
 
     if (!verification.verified) {
       // Log failed attempt
@@ -324,10 +479,13 @@ export class WebAuthnService {
       throw new Error("Authentication verification failed");
     }
 
-    // Update counter (replay protection)
+    // Update counter (replay protection) and lastUsedAt tracking
     await prisma.biometricIdentity.update({
       where: { id: credential.id },
-      data: { authCounter: verification.authenticationInfo.newCounter },
+      data: {
+        authCounter: verification.authenticationInfo.newCounter,
+        lastUsedAt: new Date(),
+      },
     });
 
     // Generate JWT token
@@ -441,6 +599,18 @@ export class WebAuthnService {
   }
 
   /**
+   * Validate session token (returns payload or null)
+   * Use this instead of verifyToken when you don't want to throw on invalid tokens
+   */
+  async validateSession(token: string): Promise<SessionPayload | null> {
+    try {
+      return await this.verifyToken(token);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Invalidate session (logout)
    */
   async invalidateSession(token: string): Promise<void> {
@@ -471,70 +641,113 @@ export class WebAuthnService {
     x: string;
     y: string;
   } {
-    const keyBytes = Buffer.from(credentialPublicKey);
+    // Properly decode the CBOR-encoded COSE key
+    // cbor-x returns a plain object with numeric keys (including negative), not a Map
+    const coseKey = cborDecode(Buffer.from(credentialPublicKey)) as Record<number, number | Uint8Array>;
 
-    // The COSE key is CBOR encoded. For P-256, we need to find the x and y coordinates.
-    // SimpleWebAuthn returns a COSE_Key structure. We'll parse it to extract x,y.
+    console.log("[DEBUG] Decoded COSE key:", JSON.stringify(coseKey, (_, v) =>
+      v instanceof Uint8Array ? `Uint8Array(${v.length})` : v
+    ));
 
-    // Find uncompressed point (0x04 prefix) if present
-    let xStart = -1;
-
-    // COSE keys have x at label -2 and y at label -3
-    // For simplicity, we scan for the 32-byte coordinate pairs
-    // In COSE EC2 keys, coordinates are typically at predictable offsets
-
-    // Method: Look for 0x04 marker (uncompressed point) or parse CBOR
-    const idx = keyBytes.indexOf(0x04);
-    if (idx !== -1 && keyBytes.length >= idx + 65) {
-      xStart = idx + 1;
-    } else {
-      // Fallback: COSE-specific parsing
-      // X coordinate typically follows after CBOR map headers
-      // For ES256, the structure is predictable
-      // Look for byte sequences of length 32
-      for (let i = 0; i < keyBytes.length - 64; i++) {
-        // Check if this could be start of x coordinate (after some CBOR header)
-        if (keyBytes[i] === 0x58 && keyBytes[i + 1] === 0x20) {
-          // bstr(32) CBOR encoding
-          xStart = i + 2;
-          break;
-        }
-      }
+    // Validate it's an EC2 key with P-256 curve
+    // COSE labels: 1=kty, 3=alg, -1=crv, -2=x, -3=y
+    const kty = coseKey[1];
+    const crv = coseKey[-1];
+    if (kty !== 2) {
+      throw new Error(`Invalid COSE key type: expected EC2 (2), got ${kty}`);
+    }
+    if (crv !== 1) {
+      throw new Error(`Invalid COSE curve: expected P-256 (1), got ${crv}`);
     }
 
-    if (xStart === -1 || xStart + 64 > keyBytes.length) {
+    // Extract X and Y coordinates (labels -2 and -3)
+    const xBytes = coseKey[-2];
+    const yBytes = coseKey[-3];
+
+    if (!xBytes || !yBytes || !(xBytes instanceof Uint8Array) || !(yBytes instanceof Uint8Array)) {
       throw new Error("Could not extract public key coordinates from COSE key");
     }
 
-    const xBytes = keyBytes.subarray(xStart, xStart + 32);
-
-    // Y coordinate follows X, possibly with CBOR header
-    let yStart = xStart + 32;
-    if (keyBytes[yStart] === 0x58 && keyBytes[yStart + 1] === 0x20) {
-      yStart += 2;
+    if (xBytes.length !== 32 || yBytes.length !== 32) {
+      throw new Error(`Invalid coordinate length: x=${xBytes.length}, y=${yBytes.length} (expected 32)`);
     }
 
-    const yBytes = keyBytes.subarray(yStart, yStart + 32);
-
     return {
-      x: "0x" + xBytes.toString("hex").padStart(64, "0"),
-      y: "0x" + yBytes.toString("hex").padStart(64, "0"),
+      x: "0x" + Buffer.from(xBytes).toString("hex"),
+      y: "0x" + Buffer.from(yBytes).toString("hex"),
     };
   }
 
   /**
    * Reconstruct COSE-like public key from x,y coordinates
    * Returns format suitable for @simplewebauthn/server verification
+   *
+   * Manually constructs CBOR bytes to avoid compatibility issues between
+   * different CBOR libraries (cbor-x vs simplewebauthn's internal decoder)
    */
   private reconstructPublicKey(x: string, y: string): Uint8Array {
-    const xBytes = Buffer.from(x.replace("0x", ""), "hex");
-    const yBytes = Buffer.from(y.replace("0x", ""), "hex");
+    const xHex = x.replace("0x", "");
+    const yHex = y.replace("0x", "");
 
-    // Return uncompressed point format (0x04 || x || y)
-    // This is what SimpleWebAuthn expects for verification
-    return new Uint8Array(
-      Buffer.concat([Buffer.from([0x04]), xBytes, yBytes])
-    );
+    // Validate coordinate lengths (must be exactly 32 bytes = 64 hex chars)
+    if (xHex.length !== 64) {
+      throw new Error(`Invalid X coordinate length: ${xHex.length / 2} bytes (expected 32). Stored data may be corrupted - please re-register your passkey.`);
+    }
+    if (yHex.length !== 64) {
+      throw new Error(`Invalid Y coordinate length: ${yHex.length / 2} bytes (expected 32). Stored data may be corrupted - please re-register your passkey.`);
+    }
+
+    const xBytes = Buffer.from(xHex, "hex");
+    const yBytes = Buffer.from(yHex, "hex");
+
+    // Manually construct CBOR-encoded COSE Key for EC2 (P-256)
+    // This avoids compatibility issues between different CBOR implementations
+    //
+    // COSE Key structure:
+    // Map(5) { 1: 2, 3: -7, -1: 1, -2: x_bytes(32), -3: y_bytes(32) }
+    //
+    // CBOR encoding:
+    // A5        - Map with 5 items
+    // 01 02     - Key 1 (kty), Value 2 (EC2)
+    // 03 26     - Key 3 (alg), Value -7 (ES256, encoded as 0x26 = -1-6)
+    // 20 01     - Key -1 (crv, encoded as 0x20 = -1-0), Value 1 (P-256)
+    // 21 5820   - Key -2 (x, encoded as 0x21 = -1-1), Byte string 32 bytes (0x58 0x20)
+    // [32 bytes of x]
+    // 22 5820   - Key -3 (y, encoded as 0x22 = -1-2), Byte string 32 bytes
+    // [32 bytes of y]
+
+    const coseBytes = new Uint8Array(77); // 5 + 32 + 5 + 32 + 3 = 77 bytes
+    let offset = 0;
+
+    // Map header: 5 items
+    coseBytes[offset++] = 0xa5;
+
+    // Key 1 (kty): 2 (EC2)
+    coseBytes[offset++] = 0x01;
+    coseBytes[offset++] = 0x02;
+
+    // Key 3 (alg): -7 (ES256)
+    coseBytes[offset++] = 0x03;
+    coseBytes[offset++] = 0x26; // -7 encoded as negative int
+
+    // Key -1 (crv): 1 (P-256)
+    coseBytes[offset++] = 0x20; // -1 encoded
+    coseBytes[offset++] = 0x01;
+
+    // Key -2 (x): 32-byte string
+    coseBytes[offset++] = 0x21; // -2 encoded
+    coseBytes[offset++] = 0x58; // byte string, 1-byte length follows
+    coseBytes[offset++] = 0x20; // 32 bytes
+    coseBytes.set(xBytes, offset);
+    offset += 32;
+
+    // Key -3 (y): 32-byte string
+    coseBytes[offset++] = 0x22; // -3 encoded
+    coseBytes[offset++] = 0x58; // byte string, 1-byte length follows
+    coseBytes[offset++] = 0x20; // 32 bytes
+    coseBytes.set(yBytes, offset);
+
+    return coseBytes;
   }
 
   /**
