@@ -22,17 +22,21 @@ const prisma = new PrismaClient();
 const RP_NAME = process.env.WEBAUTHN_RP_NAME || "RWA Gateway";
 const RP_ID = process.env.WEBAUTHN_RP_ID || "localhost";
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || "http://localhost:3000";
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "development-secret-change-in-production"
-);
+// Security: JWT_SECRET must be set via environment variable
+const JWT_SECRET_RAW = process.env.JWT_SECRET;
+if (!JWT_SECRET_RAW) {
+  throw new Error('SECURITY ERROR: JWT_SECRET environment variable is required. Server cannot start without it.');
+}
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
 const CHALLENGE_TTL = 300; // 5 minutes
 
 export interface RegistrationResult {
   user: {
     id: string;
-    email: string;
-    walletAddress: string;
+    email: string | null;
+    walletAddress: string | null;
     displayName: string | null;
+    authProvider: 'EMAIL' | 'GOOGLE' | 'WALLET';
   };
   publicKey: { x: string; y: string };
 }
@@ -42,15 +46,18 @@ export interface AuthenticationResult {
   expiresAt: Date;
   user: {
     id: string;
-    email: string;
-    walletAddress: string;
+    email: string | null;
+    walletAddress: string | null;
+    displayName: string | null;
+    authProvider: 'EMAIL' | 'GOOGLE' | 'WALLET';
   };
 }
 
 export interface SessionPayload {
   userId: string;
-  email: string;
-  walletAddress: string;
+  email: string | null;
+  walletAddress: string | null;
+  authProvider: 'EMAIL' | 'GOOGLE' | 'WALLET';
 }
 
 export class WebAuthnService {
@@ -200,9 +207,10 @@ export class WebAuthnService {
     return {
       user: {
         id: user.id,
-        email: user.email!,
+        email: user.email,
         walletAddress: user.walletAddress,
         displayName: user.displayName,
+        authProvider: user.authProvider as 'EMAIL' | 'GOOGLE' | 'WALLET',
       },
       publicKey,
     };
@@ -328,6 +336,7 @@ export class WebAuthnService {
       sub: user.id,
       email: user.email,
       walletAddress: user.walletAddress,
+      authProvider: user.authProvider,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -352,6 +361,7 @@ export class WebAuthnService {
         userId: user.id,
         email: user.email,
         walletAddress: user.walletAddress,
+        authProvider: user.authProvider,
       })
     );
 
@@ -373,8 +383,10 @@ export class WebAuthnService {
       expiresAt,
       user: {
         id: user.id,
-        email: user.email!,
+        email: user.email,
         walletAddress: user.walletAddress,
+        displayName: user.displayName,
+        authProvider: user.authProvider as 'EMAIL' | 'GOOGLE' | 'WALLET',
       },
     };
   }
@@ -405,8 +417,9 @@ export class WebAuthnService {
 
       const sessionPayload: SessionPayload = {
         userId: session.userId,
-        email: session.user.email!,
+        email: session.user.email,
         walletAddress: session.user.walletAddress,
+        authProvider: session.user.authProvider as 'EMAIL' | 'GOOGLE' | 'WALLET',
       };
 
       // Re-cache in Redis

@@ -16,8 +16,28 @@ const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
 const webAuthnService = new WebAuthnService(redis);
 
 /**
+ * Extract JWT token from request (SEC-002: Dual-mode auth)
+ * Priority: 1. Cookie (httpOnly) 2. Authorization header (backward compat)
+ */
+function extractTokenFromRequest(req: Request): string | null {
+  // 1. Check httpOnly cookie first (new method - SEC-002)
+  const cookieToken = req.cookies?.auth_token;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // 2. Fallback to Authorization header (backward compatibility)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.substring(7) || null;
+  }
+
+  return null;
+}
+
+/**
  * JWT Authentication Middleware
- * Verifies Bearer token and attaches user context to request
+ * Verifies token from cookie or Bearer header and attaches user context to request
  */
 export async function requireAuth(
   req: Request,
@@ -25,33 +45,13 @@ export async function requireAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      res.status(401).json({
-        success: false,
-        error: "Authorization header required",
-        code: "MISSING_AUTH_HEADER",
-      });
-      return;
-    }
-
-    if (!authHeader.startsWith("Bearer ")) {
-      res.status(401).json({
-        success: false,
-        error: "Invalid authorization format. Use: Bearer <token>",
-        code: "INVALID_AUTH_FORMAT",
-      });
-      return;
-    }
-
-    const token = authHeader.substring(7);
+    const token = extractTokenFromRequest(req);
 
     if (!token) {
       res.status(401).json({
         success: false,
-        error: "Token not provided",
-        code: "MISSING_TOKEN",
+        error: "Authentication required",
+        code: "MISSING_AUTH",
       });
       return;
     }
@@ -86,6 +86,7 @@ export async function requireAuth(
 /**
  * Optional Authentication Middleware
  * Attaches user context if valid token present, but allows unauthenticated access
+ * SEC-002: Now supports both cookie and bearer token
  */
 export async function optionalAuth(
   req: Request,
@@ -93,17 +94,14 @@ export async function optionalAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    const token = extractTokenFromRequest(req);
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      if (token) {
-        try {
-          const session = await webAuthnService.verifyToken(token);
-          req.user = session;
-        } catch {
-          // Silently ignore invalid tokens for optional auth
-        }
+    if (token) {
+      try {
+        const session = await webAuthnService.verifyToken(token);
+        req.user = session;
+      } catch {
+        // Silently ignore invalid tokens for optional auth
       }
     }
 
@@ -186,5 +184,5 @@ export function getUserId(req: Request): string | undefined {
  * Extract wallet address from request (helper for routes)
  */
 export function getWalletAddress(req: Request): string | undefined {
-  return req.user?.walletAddress;
+  return req.user?.walletAddress ?? undefined;
 }
