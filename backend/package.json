@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:load": "RUN_LOAD_TESTS=true vitest run src/__tests__/load/"
   },
   "dependencies": {
     "@prisma/client": "^5.8.0",
