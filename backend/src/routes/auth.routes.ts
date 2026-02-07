@@ -361,9 +361,11 @@ router.get("/session", async (req: Request, res: Response) => {
     // Check if user has biometrics registered
     const hasBiometrics = await checkUserHasBiometrics(session.userId);
 
-    // For passkey users, compute the REAL smart wallet address from factory
+    // For passkey users (NOT wallet users), compute the REAL smart wallet address from factory
+    // Wallet users always use their EOA for permit-based transactions, even if they added a passkey
     let walletAddress = session.walletAddress;
-    if (hasBiometrics) {
+    const isWalletUser = session.authProvider === "WALLET";
+    if (hasBiometrics && !isWalletUser) {
       try {
         // Get user's biometric identity to compute smart wallet address
         const userWithBiometrics = await prisma.user.findUnique({
