@@ -531,7 +531,10 @@ router.post(
       // Calculate shares (simplified: 1:1 ratio, real implementation would use pool's share price)
       const shares = amountBigInt;
 
-      // Create confirmed investment record (passkey already verified)
+      // Capture current NAV for tracking gains
+      const currentNavPerShare = pool.navPerShare ?? BigInt(100000000);
+
+      // Create investment as PENDING - only confirm after on-chain success
       const investment = await prisma.investment.create({
         data: {
           userId: req.user!.userId,
@@ -539,22 +542,15 @@ router.post(
           type: "INVEST",
           amount: amountBigInt,
           shares,
-          status: "CONFIRMED", // Directly confirmed since passkey was verified
+          status: "PENDING", // Start as PENDING, confirm after on-chain tx
+          sharePriceAtPurchase: currentNavPerShare,
         },
       });
 
-      // Update pool stats
-      await prisma.assetPool.update({
-        where: { id: pool.id },
-        data: {
-          totalDeposited: { increment: amountBigInt },
-          investorCount: { increment: 1 },
-        },
-      });
-
-      // ============== ON-CHAIN TRANSACTION (Fire-and-Forget) ==============
+      // ============== ON-CHAIN TRANSACTION ==============
       let txHash: string | null = null;
       let onChainStatus: "submitted" | "skipped" | "failed" = "skipped";
+      let finalStatus: "CONFIRMED" | "PENDING" | "FAILED" = "PENDING";
 
       if (relayerService?.hasRwaPool() && investorUser?.walletAddress) {
         try {
@@ -571,44 +567,73 @@ router.post(
             if (txResult.status === "success" && txResult.txHash) {
               txHash = txResult.txHash;
               onChainStatus = "submitted";
+              finalStatus = "CONFIRMED";
 
-              // Update investment record with transaction hash
+              // Update investment to CONFIRMED with txHash
               await prisma.investment.update({
                 where: { id: investment.id },
-                data: { txHash: txResult.txHash },
+                data: {
+                  txHash: txResult.txHash,
+                  status: "CONFIRMED",
+                },
+              });
+
+              // Update pool stats only after on-chain confirmation
+              await prisma.assetPool.update({
+                where: { id: pool.id },
+                data: {
+                  totalDeposited: { increment: amountBigInt },
+                  investorCount: { increment: 1 },
+                },
               });
 
               console.log(`[Investment] On-chain success: txHash=${txResult.txHash}`);
             } else {
               onChainStatus = "failed";
+              finalStatus = "FAILED";
+
+              // Mark investment as failed
+              await prisma.investment.update({
+                where: { id: investment.id },
+                data: { status: "FAILED" },
+              });
+
               console.error(`[Investment] On-chain failed: status=${txResult.status}`);
             }
           } else {
-            console.warn("[Investment] Relayer balance low - skipping on-chain");
+            console.warn("[Investment] Relayer balance low - keeping as PENDING");
           }
         } catch (onChainError: any) {
           onChainStatus = "failed";
-          console.error("[Investment] On-chain error (non-blocking):", onChainError.message);
-          // Continue - investment is still valid in database
+          finalStatus = "FAILED";
+
+          // Mark investment as failed
+          await prisma.investment.update({
+            where: { id: investment.id },
+            data: { status: "FAILED" },
+          });
+
+          console.error("[Investment] On-chain error:", onChainError.message);
         }
       } else if (!investorUser?.walletAddress) {
-        console.log("[Investment] No wallet address - skipping on-chain");
+        console.log("[Investment] No wallet address - keeping as PENDING");
       }
 
       // Log the action
       await prisma.auditLog.create({
         data: {
-          action: "INVESTMENT_CONFIRMED",
+          action: finalStatus === "CONFIRMED" ? "INVESTMENT_CONFIRMED" : finalStatus === "FAILED" ? "INVESTMENT_FAILED" : "INVESTMENT_PENDING",
           userId: req.user!.userId,
           resourceType: "Investment",
           resourceId: investment.id,
-          status: "SUCCESS",
+          status: finalStatus === "CONFIRMED" ? "SUCCESS" : finalStatus === "FAILED" ? "FAILURE" : "PENDING",
           metadata: {
             poolId: pool.id,
             amount: amount,
             passkeyVerified: true,
             onChainStatus,
             txHash,
+            finalStatus,
           },
         },
       });
@@ -620,18 +645,21 @@ router.post(
           poolId: pool.id,
           amount: investment.amount.toString(),
           shares: investment.shares.toString(),
-          status: investment.status,
+          status: finalStatus, // Use computed final status
           createdAt: investment.createdAt,
-          txHash, // Include transaction hash if submitted on-chain
+          txHash,
         },
         onChain: {
           status: onChainStatus,
           txHash,
           explorer: txHash ? `https://testnet.snowtrace.io/tx/${txHash}` : null,
         },
-        message: txHash
-          ? "Investment confirmed on-chain. Transaction submitted to Avalanche."
-          : "Investment confirmed. Passkey verification successful.",
+        message:
+          finalStatus === "CONFIRMED"
+            ? "Investment confirmed on-chain. Transaction submitted to Avalanche."
+            : finalStatus === "FAILED"
+              ? "Investment failed. On-chain transaction was not successful."
+              : "Investment recorded. Awaiting on-chain confirmation.",
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -934,6 +962,16 @@ router.post(
         deadline
       );
 
+      // Debug logging for permit-data
+      console.log("[Permit Debug] Generated permit data for signing:", {
+        owner: user.walletAddress,
+        spender: rwaPoolAddress,
+        amount: amountBigInt.toString(),
+        deadline: data.deadline,
+        nonce: data.nonce.toString(),
+        domain: typedData.domain,
+      });
+
       res.json({
         success: true,
         permit: {
@@ -1079,8 +1117,20 @@ router.post(
         deadline
       );
 
+      // Debug logging
+      console.log("[Permit Debug] Verification data:", {
+        owner: user.walletAddress,
+        spender: rwaPoolAddress,
+        amount: amountBigInt.toString(),
+        deadline,
+        domain: typedData.domain,
+        message: typedData.message,
+        signatureLength: signature?.length,
+      });
+
       const isValid = permitService.verifySignature(typedData, signature, user.walletAddress);
       if (!isValid) {
+        console.log("[Permit Debug] Signature verification FAILED");
         res.status(401).json({
           success: false,
           error: "Invalid permit signature",
@@ -1115,6 +1165,9 @@ router.post(
       // Calculate shares (1:1 for simplicity)
       const shares = amountBigInt;
 
+      // Capture current NAV for tracking gains
+      const currentNavPerShare = pool.navPerShare ?? BigInt(100000000);
+
       // Submit on-chain transaction with permit
       console.log(`[Permit Investment] Submitting: pool=${pool.chainPoolId}, investor=${user.walletAddress}, amount=${amount}`);
 
@@ -1147,6 +1200,7 @@ router.post(
           shares,
           status: "CONFIRMED",
           txHash: txResult.txHash,
+          sharePriceAtPurchase: currentNavPerShare,
         },
       });
 

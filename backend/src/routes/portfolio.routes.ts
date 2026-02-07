@@ -3,9 +3,11 @@ import { z } from "zod";
 import { PrismaClient, InvestmentType, InvestmentStatus } from "@prisma/client";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { standardApiLimiter } from "../middleware/rateLimit.middleware.js";
+import { getNavService, NAV_BASE } from "../services/nav.service.js";
 
 const router = Router();
 const prisma = new PrismaClient();
+const navService = getNavService(prisma);
 
 // ==================== Validation Schemas ====================
 
@@ -44,12 +46,13 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
             assetClass: true,
             yieldRateBps: true,
             status: true,
+            navPerShare: true,
           },
         },
       },
     });
 
-    // Aggregate by pool
+    // Aggregate by pool with NAV tracking
     const holdingsMap = new Map<
       string,
       {
@@ -61,6 +64,9 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         totalRedeemed: bigint;
         totalShares: bigint;
         status: string;
+        currentNavPerShare: bigint;
+        weightedPurchaseNav: bigint;
+        weightedNavDivisor: bigint;
       }
     >();
 
@@ -74,14 +80,25 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         totalRedeemed: 0n,
         totalShares: 0n,
         status: inv.pool.status,
+        currentNavPerShare: inv.pool.navPerShare ?? NAV_BASE,
+        weightedPurchaseNav: 0n,
+        weightedNavDivisor: 0n,
       };
 
       if (inv.type === InvestmentType.INVEST) {
         existing.totalInvested += inv.amount;
         existing.totalShares += inv.shares;
+        // Track weighted average purchase NAV
+        const purchaseNav = inv.sharePriceAtPurchase ?? NAV_BASE;
+        existing.weightedPurchaseNav += inv.shares * purchaseNav;
+        existing.weightedNavDivisor += inv.shares;
       } else {
         existing.totalRedeemed += inv.amount;
         existing.totalShares -= inv.shares;
+        // Adjust weighted averages on redemption (FIFO-like reduction)
+        const purchaseNav = inv.sharePriceAtPurchase ?? NAV_BASE;
+        existing.weightedPurchaseNav -= inv.shares * purchaseNav;
+        existing.weightedNavDivisor -= inv.shares;
       }
 
       holdingsMap.set(inv.poolId, existing);
@@ -90,23 +107,48 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
     // Convert to array and filter out fully redeemed positions
     const holdings = Array.from(holdingsMap.values())
       .filter((h) => h.totalShares > 0n)
-      .map((h) => ({
-        poolId: h.poolId,
-        poolName: h.poolName,
-        assetClass: h.assetClass,
-        yieldRatePercent: (h.yieldRateBps / 100).toFixed(2),
-        totalInvested: h.totalInvested.toString(),
-        totalRedeemed: h.totalRedeemed.toString(),
-        netInvested: (h.totalInvested - h.totalRedeemed).toString(),
-        totalShares: h.totalShares.toString(),
-        status: h.status,
-      }));
+      .map((h) => {
+        // Calculate weighted average purchase NAV
+        const avgPurchaseNav = h.weightedNavDivisor > 0n
+          ? h.weightedPurchaseNav / h.weightedNavDivisor
+          : NAV_BASE;
+
+        // Calculate current value and gains
+        const { currentValue, costBasis, unrealizedGain, gainPercent } =
+          navService.calculateCurrentValue(h.totalShares, h.currentNavPerShare, avgPurchaseNav);
+
+        return {
+          poolId: h.poolId,
+          poolName: h.poolName,
+          assetClass: h.assetClass,
+          yieldRatePercent: (h.yieldRateBps / 100).toFixed(2),
+          totalInvested: h.totalInvested.toString(),
+          totalRedeemed: h.totalRedeemed.toString(),
+          netInvested: (h.totalInvested - h.totalRedeemed).toString(),
+          totalShares: h.totalShares.toString(),
+          status: h.status,
+          // NAV-based value tracking
+          currentValue: currentValue.toString(),
+          costBasis: costBasis.toString(),
+          unrealizedGain: unrealizedGain.toString(),
+          gainPercent,
+          navPerShare: navService.formatNav(h.currentNavPerShare),
+        };
+      });
 
     // Calculate totals
-    const totalInvested = holdings.reduce(
-      (sum, h) => sum + BigInt(h.netInvested),
+    const totalCostBasis = holdings.reduce(
+      (sum, h) => sum + BigInt(h.costBasis),
       0n
     );
+    const totalCurrentValue = holdings.reduce(
+      (sum, h) => sum + BigInt(h.currentValue),
+      0n
+    );
+    const totalUnrealizedGain = totalCurrentValue - totalCostBasis;
+    const totalGainPercent = totalCostBasis > 0n
+      ? ((Number(totalUnrealizedGain) / Number(totalCostBasis)) * 100).toFixed(2)
+      : "0.00";
 
     // Get credentials
     const credentials = await prisma.credential.findMany({
@@ -143,7 +185,10 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
           memberSince: user?.createdAt,
         },
         summary: {
-          totalInvested: totalInvested.toString(),
+          totalCurrentValue: totalCurrentValue.toString(),
+          totalCostBasis: totalCostBasis.toString(),
+          totalUnrealizedGain: totalUnrealizedGain.toString(),
+          totalGainPercent,
           holdingsCount: holdings.length,
           credentialsCount: credentials.length,
         },

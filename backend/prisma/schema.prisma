@@ -7,177 +7,128 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// USER & IDENTITY
-// ============================================
-
 model User {
-  id            String   @id @default(cuid())
-  walletAddress String?  @unique @map("wallet_address")
-  email         String?  @unique
-  displayName   String?  @map("display_name")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // Multi-auth fields
-  googleId      String?      @unique @map("google_id")
-  emailVerified Boolean      @default(false) @map("email_verified")
-  authProvider  AuthProvider @default(EMAIL) @map("auth_provider")
-  avatarUrl     String?      @map("avatar_url")
-
-  // Relations
+  id                  String              @id @default(cuid())
+  walletAddress       String?             @unique @map("wallet_address")
+  email               String?             @unique
+  displayName         String?             @map("display_name")
+  isActive            Boolean             @default(true) @map("is_active")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  authProvider        AuthProvider        @default(EMAIL) @map("auth_provider")
+  avatarUrl           String?             @map("avatar_url")
+  emailVerified       Boolean             @default(false) @map("email_verified")
+  googleId            String?             @unique @map("google_id")
+  smartWalletAddress  String?             @map("smart_wallet_address")
+  auditLogs           AuditLog[]
   biometricIdentities BiometricIdentity[]
   credentials         Credential[]
-  investments         Investment[]
   documents           Document[]
+  investments         Investment[]
+  recoveryCodes       RecoveryCode[]
   sessions            Session[]
-  auditLogs           AuditLog[]
 
   @@index([googleId])
   @@index([authProvider])
   @@map("users")
 }
 
-enum AuthProvider {
-  EMAIL
-  GOOGLE
-  WALLET
-
-  @@map("auth_provider")
-}
-
 model BiometricIdentity {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  credentialId String   @unique @map("credential_id") // WebAuthn credential ID (base64)
-  publicKeyX   String   @map("public_key_x") // P-256 X coordinate (hex)
-  publicKeyY   String   @map("public_key_y") // P-256 Y coordinate (hex)
-  authCounter  Int      @default(0) @map("auth_counter")
-  deviceInfo   Json?    @map("device_info") // Browser/device metadata
-  onChainTxHash String? @map("on_chain_tx_hash") // Registration transaction
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  credentialId  String    @unique @map("credential_id")
+  publicKeyX    String    @map("public_key_x")
+  publicKeyY    String    @map("public_key_y")
+  authCounter   Int       @default(0) @map("auth_counter")
+  deviceInfo    Json?     @map("device_info")
+  onChainTxHash String?   @map("on_chain_tx_hash")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  aaguid        String?   @map("aaguid")
+  deviceName    String?   @map("device_name")
+  lastUsedAt    DateTime? @map("last_used_at")
+  lastUsedIp    String?   @map("last_used_ip")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("biometric_identities")
 }
 
-// ============================================
-// CREDENTIALS (KYC/ACCREDITATION)
-// ============================================
+model RecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  codeHash  String    @map("code_hash")
+  used      Boolean   @default(false)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-enum CredentialType {
-  ACCREDITED
-  QUALIFIED
-  INSTITUTIONAL
-  RETAIL_RESTRICTED
-}
-
-enum CredentialStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
-  REVOKED
+  @@index([userId])
+  @@map("recovery_codes")
 }
 
 model Credential {
   id             String           @id @default(cuid())
   userId         String           @map("user_id")
   credentialType CredentialType   @map("credential_type")
-  jurisdiction   String           // ISO 3166-1 alpha-2 (e.g., "US", "GB")
-  tier           Int              @default(1) // 1-5, affects investment limits
+  jurisdiction   String
+  tier           Int              @default(1)
   status         CredentialStatus @default(PENDING)
-  issuerAddress  String?          @map("issuer_address") // On-chain issuer
+  issuerAddress  String?          @map("issuer_address")
   onChainTxHash  String?          @map("on_chain_tx_hash")
   issuedAt       DateTime?        @map("issued_at")
   expiresAt      DateTime?        @map("expires_at")
-  metadata       Json?            // Additional verification data
+  metadata       Json?
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
   @@map("credentials")
 }
 
-// ============================================
-// ASSET POOLS & INVESTMENTS
-// ============================================
-
-enum AssetClass {
-  TREASURY
-  REAL_ESTATE
-  PRIVATE_CREDIT
-  COMMODITIES
-}
-
-enum PoolStatus {
-  ACTIVE
-  PAUSED
-  CLOSED
-}
-
 model AssetPool {
-  id              String      @id @default(cuid())
-  chainPoolId     Int         @unique @map("chain_pool_id") // On-chain pool ID
+  id              String         @id @default(cuid())
+  chainPoolId     Int            @unique @map("chain_pool_id")
   name            String
-  assetClass      AssetClass  @map("asset_class")
-  rwaTokenAddress String      @map("rwa_token_address")
-  yieldRateBps    Int         @map("yield_rate_bps") // Basis points (100 = 1%)
-  totalDeposited  BigInt      @default(0) @map("total_deposited") // In USDC (6 decimals)
-  investorCount   Int         @default(0) @map("investor_count")
-  minInvestment   BigInt      @map("min_investment")
-  maxInvestment   BigInt      @map("max_investment")
-  status          PoolStatus  @default(ACTIVE)
-  metadata        Json?       // Pool description, documents, etc.
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-
-  // Relations
-  investments  Investment[]
-  yieldHistory YieldHistory[]
+  assetClass      AssetClass     @map("asset_class")
+  rwaTokenAddress String         @map("rwa_token_address")
+  yieldRateBps    Int            @map("yield_rate_bps")
+  totalDeposited  BigInt         @default(0) @map("total_deposited")
+  investorCount   Int            @default(0) @map("investor_count")
+  minInvestment   BigInt         @map("min_investment")
+  maxInvestment   BigInt         @map("max_investment")
+  status          PoolStatus     @default(ACTIVE)
+  metadata        Json?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  navPerShare     BigInt         @default(100000000) @map("nav_per_share")
+  lastNavUpdate   DateTime       @default(now()) @map("last_nav_update")
+  investments     Investment[]
+  yieldHistory    YieldHistory[]
 
   @@index([assetClass])
   @@index([status])
   @@map("asset_pools")
 }
 
-enum InvestmentType {
-  INVEST
-  REDEEM
-}
-
-enum InvestmentStatus {
-  PENDING
-  CONFIRMED
-  FAILED
-}
-
 model Investment {
-  id          String           @id @default(cuid())
-  userId      String           @map("user_id")
-  poolId      String           @map("pool_id")
-  type        InvestmentType
-  amount      BigInt           // USDC amount (6 decimals)
-  shares      BigInt           // RWA token shares (18 decimals)
-  status      InvestmentStatus @default(PENDING)
-  txHash      String?          @map("tx_hash")
-  blockNumber Int?             @map("block_number")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pool AssetPool @relation(fields: [poolId], references: [id])
+  id                   String           @id @default(cuid())
+  userId               String           @map("user_id")
+  poolId               String           @map("pool_id")
+  type                 InvestmentType
+  amount               BigInt
+  shares               BigInt
+  status               InvestmentStatus @default(PENDING)
+  txHash               String?          @map("tx_hash")
+  blockNumber          Int?             @map("block_number")
+  sharePriceAtPurchase BigInt?          @map("share_price_at_purchase")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  pool                 AssetPool        @relation(fields: [poolId], references: [id])
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([poolId])
@@ -186,54 +137,40 @@ model Investment {
 }
 
 model YieldHistory {
-  id              String   @id @default(cuid())
-  poolId          String   @map("pool_id")
-  yieldAmount     BigInt   @map("yield_amount")
-  cumulativeYield BigInt   @map("cumulative_yield")
-  recordedAt      DateTime @default(now()) @map("recorded_at")
-
-  // Relations
-  pool AssetPool @relation(fields: [poolId], references: [id])
+  id              String    @id @default(cuid())
+  poolId          String    @map("pool_id")
+  yieldAmount     BigInt    @map("yield_amount")
+  cumulativeYield BigInt    @map("cumulative_yield")
+  recordedAt      DateTime  @default(now()) @map("recorded_at")
+  pool            AssetPool @relation(fields: [poolId], references: [id])
 
   @@index([poolId])
   @@map("yield_history")
 }
 
-// ============================================
-// DOCUMENTS
-// ============================================
-
 model Document {
   id           String   @id @default(cuid())
-  documentHash String   @unique @map("document_hash") // SHA-256
+  documentHash String   @unique @map("document_hash")
   title        String
   signerId     String   @map("signer_id")
   txHash       String?  @map("tx_hash")
   sealedAt     DateTime @default(now()) @map("sealed_at")
   metadata     Json?
-
-  // Relations
-  signer User @relation(fields: [signerId], references: [id])
+  signer       User     @relation(fields: [signerId], references: [id])
 
   @@index([signerId])
   @@map("documents")
 }
 
-// ============================================
-// SESSIONS
-// ============================================
-
 model Session {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
-  tokenHash String   @unique @map("token_hash") // SHA-256 of JWT
+  tokenHash String   @unique @map("token_hash")
   expiresAt DateTime @map("expires_at")
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -254,20 +191,16 @@ model EmailVerificationCode {
   @@map("email_verification_codes")
 }
 
-// ============================================
-// BLOCKCHAIN INDEXING
-// ============================================
-
 model IndexedEvent {
   id              String   @id @default(cuid())
-  eventId         String   @unique @map("event_id") // txHash-logIndex
+  eventId         String   @unique @map("event_id")
   contractAddress String   @map("contract_address")
   eventName       String   @map("event_name")
   blockNumber     Int      @map("block_number")
   blockHash       String   @map("block_hash")
   txHash          String   @map("tx_hash")
   logIndex        Int      @map("log_index")
-  args            Json     // Event arguments
+  args            Json
   reorged         Boolean  @default(false)
   indexedAt       DateTime @default(now()) @map("indexed_at")
 
@@ -277,26 +210,68 @@ model IndexedEvent {
   @@map("indexed_events")
 }
 
-// ============================================
-// AUDIT LOG
-// ============================================
-
 model AuditLog {
   id           String   @id @default(cuid())
-  action       String   // e.g., "REGISTER", "INVEST", "CREDENTIAL_ISSUED"
+  action       String
   userId       String?  @map("user_id")
   resourceType String?  @map("resource_type")
   resourceId   String?  @map("resource_id")
   metadata     Json?
   ipAddress    String?  @map("ip_address")
-  status       String   // "SUCCESS", "FAILURE"
+  status       String
   createdAt    DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user User? @relation(fields: [userId], references: [id])
+  user         User?    @relation(fields: [userId], references: [id])
 
   @@index([action])
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  WALLET
+
+  @@map("auth_provider")
+}
+
+enum CredentialType {
+  ACCREDITED
+  QUALIFIED
+  INSTITUTIONAL
+  RETAIL_RESTRICTED
+}
+
+enum CredentialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+enum AssetClass {
+  TREASURY
+  REAL_ESTATE
+  PRIVATE_CREDIT
+  COMMODITIES
+  CORPORATE_BONDS
+}
+
+enum PoolStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum InvestmentType {
+  INVEST
+  REDEEM
+}
+
+enum InvestmentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
 }
