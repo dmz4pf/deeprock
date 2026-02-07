@@ -29,22 +29,12 @@ function getUserOpService(): UserOperationService {
 // ==================== Validation Schemas ====================
 
 const buildUserOpSchema = z.object({
-  poolId: z.string().uuid("Invalid pool ID format"),
+  poolId: z.string().min(1, "Pool ID is required"),
   amount: z.string().regex(/^\d+$/, "Amount must be a positive integer string"),
 });
 
 const submitUserOpSchema = z.object({
-  userOp: z.object({
-    sender: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid sender address"),
-    nonce: z.string(),
-    initCode: z.string(),
-    callData: z.string(),
-    accountGasLimits: z.string(),
-    preVerificationGas: z.string(),
-    gasFees: z.string(),
-    paymasterAndData: z.string(),
-    signature: z.string(),
-  }),
+  requestId: z.string().uuid("Invalid request ID"),
   webauthnSignature: z.object({
     authenticatorData: z.string(),
     clientDataJSON: z.string(),
@@ -327,8 +317,23 @@ router.post(
   investmentLimiter,
   async (req: Request, res: Response) => {
     try {
-      const { userOp, webauthnSignature } = submitUserOpSchema.parse(req.body);
+      const { requestId, webauthnSignature } = submitUserOpSchema.parse(req.body);
       const userId = req.user!.userId;
+
+      // Retrieve original userOp from Redis using requestId
+      const pendingData = await redis.get(`userop:pending:${requestId}`);
+      if (!pendingData) {
+        res.status(400).json({
+          success: false,
+          error: "Request expired or not found. Please try building a new UserOperation.",
+          code: "REQUEST_EXPIRED",
+        });
+        return;
+      }
+
+      const { userOp, hash: originalHash, walletAddress } = JSON.parse(pendingData);
+      console.log("[UserOp] Retrieved pending request:", requestId);
+      console.log("[UserOp] Original hash from build:", originalHash);
 
       // Verify user owns this wallet
       const identity = await prisma.biometricIdentity.findFirst({
@@ -377,13 +382,100 @@ router.post(
         .update(clientDataJSON)
         .digest("hex");
 
-      // Encode WebAuthn signature for the smart wallet
+      // Verify challenge in clientDataJSON matches the original hash
+      try {
+        const clientData = JSON.parse(clientDataJSON.toString("utf-8"));
+        console.log("[UserOp] clientDataJSON type:", clientData.type);
+
+        // Extract challenge and convert from base64url to hex
+        const challengeBase64 = clientData.challenge;
+        const challengeHex = "0x" + Buffer.from(challengeBase64, "base64url").toString("hex");
+        console.log("[UserOp] Challenge from signature:", challengeHex);
+        console.log("[UserOp] Original hash from build:", originalHash);
+
+        // Verify the challenge matches the original hash we asked them to sign
+        if (challengeHex.toLowerCase() !== originalHash.toLowerCase()) {
+          console.error("[UserOp] CRITICAL: Challenge doesn't match original hash!");
+          console.error("[UserOp]   Signed challenge:", challengeHex);
+          console.error("[UserOp]   Expected hash:   ", originalHash);
+          res.status(400).json({
+            success: false,
+            error: "Signature challenge does not match the UserOperation hash",
+            code: "CHALLENGE_MISMATCH",
+          });
+          return;
+        }
+        console.log("[UserOp] Challenge matches original hash ✓");
+
+        // Also verify our hash computation matches EntryPoint's
+        const entryPointHash = await service.getEntryPointUserOpHash(userOp);
+        console.log("[UserOp] EntryPoint hash:", entryPointHash);
+        if (entryPointHash.toLowerCase() !== originalHash.toLowerCase()) {
+          console.error("[UserOp] CRITICAL: Our hash doesn't match EntryPoint!");
+          console.error("[UserOp]   Our hash:       ", originalHash);
+          console.error("[UserOp]   EntryPoint hash:", entryPointHash);
+        } else {
+          console.log("[UserOp] Hash matches EntryPoint ✓");
+        }
+      } catch (parseErr: any) {
+        console.error("[UserOp] Failed to parse clientDataJSON:", parseErr.message);
+        res.status(400).json({
+          success: false,
+          error: "Invalid clientDataJSON format",
+          code: "INVALID_CLIENT_DATA",
+        });
+        return;
+      }
+
+      // Debug: Log public key info
+      console.log("[UserOp] User's registered public key:");
+      console.log("  publicKeyX:", identity.publicKeyX);
+      console.log("  publicKeyY:", identity.publicKeyY);
+      console.log("  credentialId:", identity.credentialId);
+
+      // Debug: Test P256 signature verification directly
+      const authenticatorDataHex = "0x" + Buffer.from(webauthnSignature.authenticatorData, "base64url").toString("hex");
+      console.log("[UserOp] Testing P256 signature directly...");
+      console.log("  authenticatorData (hex):", authenticatorDataHex.slice(0, 50) + "...");
+      console.log("  authenticatorData length:", Buffer.from(webauthnSignature.authenticatorData, "base64url").length);
+      console.log("  clientDataHash:", clientDataHash);
+      console.log("  r:", r);
+      console.log("  s:", s);
+
+      // Compute messageHash the same way the contract does
+      const { ethers: eth } = await import("ethers");
+      const authenticatorDataBuffer = Buffer.from(webauthnSignature.authenticatorData, "base64url");
+      const clientDataHashBuffer = Buffer.from(clientDataHash.slice(2), "hex");
+      const concatenated = Buffer.concat([authenticatorDataBuffer, clientDataHashBuffer]);
+      const messageHash = "0x" + crypto.createHash("sha256").update(concatenated).digest("hex");
+      console.log("[UserOp] Computed messageHash (sha256(authData || clientDataHash)):", messageHash);
+
+      // Test precompile call
+      try {
+        const testResult = await service.testP256Verify(
+          messageHash,
+          r,
+          s,
+          identity.publicKeyX,
+          identity.publicKeyY
+        );
+        console.log("[UserOp] P256 precompile test result:", testResult);
+      } catch (testErr: any) {
+        console.error("[UserOp] P256 precompile test failed:", testErr.message);
+      }
+
+      // Get the wallet's current signatureCounter from on-chain
+      // The contract requires counter > signatureCounter, so we use signatureCounter + 1
+      const currentSignatureCounter = await service.getSignatureCounter(walletAddress);
+      const adjustedCounter = currentSignatureCounter + 1;
+      console.log(`[UserOp] On-chain signatureCounter: ${currentSignatureCounter} -> using: ${adjustedCounter}`);
+
       const encodedSignature = service.encodeWebAuthnSignature({
         authenticatorData: "0x" + Buffer.from(webauthnSignature.authenticatorData, "base64url").toString("hex"),
         clientDataHash,
         r,
         s,
-        counter: webauthnSignature.counter,
+        counter: adjustedCounter,
       });
 
       // Add signature to UserOp
@@ -411,10 +503,11 @@ router.post(
       // Log the operation
       await service.logUserOp(userId, "INVEST_SUBMITTED", result.userOpHash, result.status);
 
+      // Clean up pending request to prevent replay attacks
+      await redis.del(`userop:pending:${requestId}`);
+
       // If successful, create pending investment record
       if (result.status !== "failed") {
-        // Extract pool info from callData (simplified - in production decode callData)
-        // For now, we trust the frontend passed valid data
         console.log(`[UserOp] Investment submitted: ${result.userOpHash}`);
       }
 

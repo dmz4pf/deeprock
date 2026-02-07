@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { WebAuthnService } from "../services/webauthn.service.js";
+import { UserOperationService } from "../services/userop.service.js";
 import { Redis } from "ioredis";
 import {
   authLimiter,
@@ -360,6 +361,38 @@ router.get("/session", async (req: Request, res: Response) => {
     // Check if user has biometrics registered
     const hasBiometrics = await checkUserHasBiometrics(session.userId);
 
+    // For passkey users, compute the REAL smart wallet address from factory
+    let walletAddress = session.walletAddress;
+    if (hasBiometrics) {
+      try {
+        // Get user's biometric identity to compute smart wallet address
+        const userWithBiometrics = await prisma.user.findUnique({
+          where: { id: session.userId },
+          include: {
+            biometricIdentities: {
+              where: { isActive: true },
+              orderBy: { createdAt: "asc" },
+              take: 1,
+            },
+          },
+        });
+
+        if (userWithBiometrics?.biometricIdentities?.[0]) {
+          const biometric = userWithBiometrics.biometricIdentities[0];
+          const userOpRedis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+          const userOpService = new UserOperationService(userOpRedis);
+          walletAddress = await userOpService.getWalletAddress(
+            biometric.publicKeyX,
+            biometric.publicKeyY,
+            biometric.credentialId
+          );
+          console.log(`[Session] Computed smart wallet: ${walletAddress} (passkey user)`);
+        }
+      } catch (error) {
+        console.error("[Session] Failed to compute smart wallet, using database value:", error);
+      }
+    }
+
     // Get CSRF token from cookie to return to frontend
     const csrfToken = req.cookies?.csrf_token || null;
 
@@ -370,9 +403,9 @@ router.get("/session", async (req: Request, res: Response) => {
         user: {
           id: session.userId,
           email: session.email,
-          walletAddress: session.walletAddress,
+          walletAddress,
           displayName: session.email?.split("@")[0] ||
-                       (session.walletAddress ? `${session.walletAddress.slice(0, 6)}...${session.walletAddress.slice(-4)}` : null),
+                       (walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : null),
           authProvider: session.authProvider,
         },
         hasBiometrics,

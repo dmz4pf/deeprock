@@ -1,9 +1,17 @@
-import { ethers, JsonRpcProvider, Contract } from "ethers";
+import { ethers, JsonRpcProvider, Contract, Interface } from "ethers";
 import { Redis } from "ioredis";
 import { PrismaClient } from "@prisma/client";
 import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
+
+// Factory Interface for raw calls (workaround for ethers.js Contract bug)
+const FACTORY_INTERFACE = new Interface([
+  "function getAddress(bytes32 publicKeyX, bytes32 publicKeyY, bytes32 credentialId) external view returns (address)",
+  "function createWallet(bytes32 publicKeyX, bytes32 publicKeyY, bytes32 credentialId) external returns (address)",
+  "function getInitCode(bytes32 publicKeyX, bytes32 publicKeyY, bytes32 credentialId) external view returns (bytes)",
+  "function walletExists(bytes32 publicKeyX, bytes32 publicKeyY, bytes32 credentialId) external view returns (bool deployed, address wallet)",
+]);
 
 // ERC-4337 EntryPoint v0.7
 const ENTRYPOINT_ADDRESS = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
@@ -96,6 +104,7 @@ export class UserOperationService {
   private provider: JsonRpcProvider;
   private entryPoint: Contract;
   private factory: Contract;
+  private factoryAddress: string;
   private paymasterAddress: string;
   private bundlerRpcUrl: string;
   private chainId: number;
@@ -115,11 +124,29 @@ export class UserOperationService {
       throw new Error("P256_WALLET_FACTORY_ADDRESS environment variable required");
     }
 
-    this.provider = new JsonRpcProvider(rpcUrl, this.chainId);
+    // Don't pass chainId to JsonRpcProvider - let it auto-detect to avoid timeout issues
+    this.provider = new JsonRpcProvider(rpcUrl);
     this.entryPoint = new Contract(ENTRYPOINT_ADDRESS, ENTRYPOINT_ABI, this.provider);
     this.factory = new Contract(factoryAddress, FACTORY_ABI, this.provider);
+    this.factoryAddress = factoryAddress;
 
     console.log(`[UserOp] Service initialized - Factory: ${factoryAddress}, Paymaster: ${this.paymasterAddress}`);
+  }
+
+  // ==================== Raw Factory Calls (workaround for ethers.js bug) ====================
+
+  /**
+   * Make raw eth_call to factory contract
+   * This is a workaround for an ethers.js bug where Contract.method() returns wrong values
+   */
+  private async rawFactoryCall<T>(method: string, args: any[]): Promise<T> {
+    const calldata = FACTORY_INTERFACE.encodeFunctionData(method, args);
+    const result = await this.provider.send("eth_call", [
+      { to: this.factoryAddress, data: calldata },
+      "latest",
+    ]);
+    const decoded = FACTORY_INTERFACE.decodeFunctionResult(method, result);
+    return decoded.length === 1 ? decoded[0] : (decoded as unknown as T);
   }
 
   // ==================== Wallet Address Computation ====================
@@ -136,7 +163,7 @@ export class UserOperationService {
     const pkY = this.toBytes32(publicKeyY);
     const credId = this.credentialIdToBytes32(credentialId);
 
-    return (this.factory as any).getAddress(pkX, pkY, credId);
+    return this.rawFactoryCall<string>("getAddress", [pkX, pkY, credId]);
   }
 
   /**
@@ -145,6 +172,33 @@ export class UserOperationService {
   async isWalletDeployed(walletAddress: string): Promise<boolean> {
     const code = await this.provider.getCode(walletAddress);
     return code !== "0x";
+  }
+
+  /**
+   * Get wallet's current signatureCounter from on-chain
+   * Returns 0 if wallet is not deployed
+   */
+  async getSignatureCounter(walletAddress: string): Promise<number> {
+    const isDeployed = await this.isWalletDeployed(walletAddress);
+    if (!isDeployed) {
+      return 0;
+    }
+
+    try {
+      const WALLET_INTERFACE = new ethers.Interface([
+        "function signatureCounter() view returns (uint32)",
+      ]);
+      const calldata = WALLET_INTERFACE.encodeFunctionData("signatureCounter", []);
+      const result = await this.provider.send("eth_call", [
+        { to: walletAddress, data: calldata },
+        "latest",
+      ]);
+      const decoded = WALLET_INTERFACE.decodeFunctionResult("signatureCounter", result);
+      return Number(decoded[0]);
+    } catch (error) {
+      console.error("[UserOp] Failed to get signatureCounter:", error);
+      return 0;
+    }
   }
 
   /**
@@ -159,7 +213,7 @@ export class UserOperationService {
     const pkY = this.toBytes32(publicKeyY);
     const credId = this.credentialIdToBytes32(credentialId);
 
-    const [deployed, address] = await (this.factory as any).walletExists(pkX, pkY, credId);
+    const [deployed, address] = await this.rawFactoryCall<[boolean, string]>("walletExists", [pkX, pkY, credId]);
     return { deployed, address };
   }
 
@@ -178,12 +232,18 @@ export class UserOperationService {
     usdcAddress: string,
     poolAddress: string
   ): Promise<{ userOp: UserOperationData; hash: string; walletAddress: string }> {
+    console.log(`[UserOp] buildInvestUserOp starting - poolId: ${poolId}, amount: ${amount}`);
+
     const pkX = this.toBytes32(publicKeyX);
     const pkY = this.toBytes32(publicKeyY);
     const credId = this.credentialIdToBytes32(credentialId);
 
+    console.log(`[UserOp] Keys converted - pkX: ${pkX.substring(0, 20)}..., credId: ${credId.substring(0, 20)}...`);
+
     // Get wallet address
-    const walletAddress = await (this.factory as any).getAddress(pkX, pkY, credId);
+    console.log(`[UserOp] Getting wallet address from factory...`);
+    const walletAddress = await this.rawFactoryCall<string>("getAddress", [pkX, pkY, credId]);
+    console.log(`[UserOp] Wallet address: ${walletAddress}`);
 
     // Check if wallet is deployed
     const isDeployed = await this.isWalletDeployed(walletAddress);
@@ -202,11 +262,11 @@ export class UserOperationService {
     // Get initCode if wallet not deployed
     let initCode = "0x";
     if (!isDeployed) {
-      initCode = await (this.factory as any).getInitCode(pkX, pkY, credId);
+      initCode = await this.rawFactoryCall<string>("getInitCode", [pkX, pkY, credId]);
     }
 
-    // Gas estimates (conservative for hackathon)
-    const verificationGasLimit = isDeployed ? 100_000n : 300_000n; // Higher for deployment
+    // Gas estimates - P256 verification is expensive (~200-400k gas)
+    const verificationGasLimit = isDeployed ? 500_000n : 800_000n; // Higher for P256 + deployment
     const callGasLimit = 400_000n; // Approve + invest
     const preVerificationGas = 50_000n;
 
@@ -224,7 +284,7 @@ export class UserOperationService {
       accountGasLimits: this.packGasLimits(verificationGasLimit, callGasLimit),
       preVerificationGas,
       gasFees: this.packGasFees(maxPriorityFeePerGas, maxFeePerGas),
-      paymasterAndData: this.paymasterAddress || "0x",
+      paymasterAndData: this.packPaymasterAndData(this.paymasterAddress || ""),
       signature: "0x", // To be filled after signing
     };
 
@@ -253,7 +313,7 @@ export class UserOperationService {
     const pkY = this.toBytes32(publicKeyY);
     const credId = this.credentialIdToBytes32(credentialId);
 
-    const walletAddress = await (this.factory as any).getAddress(pkX, pkY, credId);
+    const walletAddress = await this.rawFactoryCall<string>("getAddress", [pkX, pkY, credId]);
     const isDeployed = await this.isWalletDeployed(walletAddress);
     const nonce = await (this.entryPoint as any).getNonce(walletAddress, 0);
 
@@ -275,10 +335,10 @@ export class UserOperationService {
 
     let initCode = "0x";
     if (!isDeployed) {
-      initCode = await (this.factory as any).getInitCode(pkX, pkY, credId);
+      initCode = await this.rawFactoryCall<string>("getInitCode", [pkX, pkY, credId]);
     }
 
-    const verificationGasLimit = isDeployed ? 100_000n : 300_000n;
+    const verificationGasLimit = isDeployed ? 500_000n : 800_000n; // P256 is expensive
     const callGasLimit = 100_000n;
     const preVerificationGas = 50_000n;
 
@@ -294,7 +354,7 @@ export class UserOperationService {
       accountGasLimits: this.packGasLimits(verificationGasLimit, callGasLimit),
       preVerificationGas,
       gasFees: this.packGasFees(maxPriorityFeePerGas, maxFeePerGas),
-      paymasterAndData: this.paymasterAddress || "0x",
+      paymasterAndData: this.packPaymasterAndData(this.paymasterAddress || ""),
       signature: "0x",
     };
 
@@ -314,10 +374,18 @@ export class UserOperationService {
    * Called after user signs with passkey
    */
   encodeWebAuthnSignature(sig: WebAuthnSignature): string {
+    // IMPORTANT: Convert hex strings to bytes to avoid ethers treating them as ASCII
+    // sig.authenticatorData is a hex string like "0x49960de5..."
+    // ethers.getBytes() properly interprets it as raw bytes
+    const authDataBytes = ethers.getBytes(sig.authenticatorData);
+
+    console.log("[EncodeWebAuthn] authenticatorData hex length:", sig.authenticatorData.length);
+    console.log("[EncodeWebAuthn] authenticatorData bytes length:", authDataBytes.length);
+
     return ethers.AbiCoder.defaultAbiCoder().encode(
       ["bytes", "bytes32", "bytes32", "bytes32", "uint32"],
       [
-        sig.authenticatorData,
+        authDataBytes,
         sig.clientDataHash,
         sig.r,
         sig.s,
@@ -328,6 +396,7 @@ export class UserOperationService {
 
   /**
    * Parse DER-encoded ECDSA signature to r, s components
+   * Normalizes s to low-s form for P-256 (required by some implementations)
    */
   parseDERSignature(derSignature: Buffer): { r: string; s: string } {
     let offset = 0;
@@ -350,9 +419,23 @@ export class UserOperationService {
 
     // Pad to 32 bytes
     const rPadded = Buffer.alloc(32);
-    const sPadded = Buffer.alloc(32);
+    let sPadded = Buffer.alloc(32);
     r.copy(rPadded, 32 - r.length);
     s.copy(sPadded, 32 - s.length);
+
+    // Normalize s to low-s form for P-256
+    // P-256 curve order n
+    const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+    const halfN = n / 2n;
+    let sBigInt = BigInt("0x" + sPadded.toString("hex"));
+
+    if (sBigInt > halfN) {
+      // Convert to low-s: s = n - s
+      sBigInt = n - sBigInt;
+      const sHex = sBigInt.toString(16).padStart(64, "0");
+      sPadded = Buffer.from(sHex, "hex");
+      console.log("[DER] Normalized high-s to low-s");
+    }
 
     return {
       r: "0x" + rPadded.toString("hex"),
@@ -493,6 +576,56 @@ export class UserOperationService {
     };
 
     try {
+      // Log UserOp details for debugging
+      console.log("[UserOp] Submitting UserOp:");
+      console.log("  sender:", userOpStruct.sender);
+      console.log("  nonce:", userOpStruct.nonce.toString());
+      console.log("  initCode length:", userOpStruct.initCode.length);
+      console.log("  callData length:", userOpStruct.callData.length);
+      console.log("  accountGasLimits:", userOpStruct.accountGasLimits);
+      console.log("  preVerificationGas:", userOpStruct.preVerificationGas.toString());
+      console.log("  gasFees:", userOpStruct.gasFees);
+      console.log("  paymasterAndData:", userOpStruct.paymasterAndData);
+      console.log("  signature:", userOpStruct.signature.slice(0, 100) + "...");
+      console.log("  signature full length:", userOpStruct.signature.length);
+
+      // Decode and log signature components for debugging
+      try {
+        const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
+          ["bytes", "bytes32", "bytes32", "bytes32", "uint32"],
+          userOpStruct.signature
+        );
+        console.log("[UserOp] Signature components:");
+        console.log("  authenticatorData length:", decoded[0].length);
+        console.log("  clientDataHash:", decoded[1]);
+        console.log("  r:", decoded[2]);
+        console.log("  s:", decoded[3]);
+        console.log("  counter:", decoded[4]);
+      } catch (decodeErr: any) {
+        console.log("[UserOp] Could not decode signature:", decodeErr.message);
+      }
+
+      // Try to simulate first to get detailed error
+      console.log("[UserOp] Simulating handleOps...");
+      try {
+        await entryPointWithSigner.handleOps.staticCall(
+          [userOpStruct],
+          wallet.address,
+          { gasLimit: 1_000_000n }
+        );
+        console.log("[UserOp] Simulation passed");
+      } catch (simError: any) {
+        console.error("[UserOp] Simulation failed:", simError.message);
+        // Try to extract revert reason
+        if (simError.data) {
+          console.error("[UserOp] Revert data:", simError.data);
+        }
+        if (simError.reason) {
+          console.error("[UserOp] Revert reason:", simError.reason);
+        }
+        throw simError;
+      }
+
       const tx = await entryPointWithSigner.handleOps(
         [userOpStruct],
         wallet.address, // beneficiary
@@ -582,6 +715,99 @@ export class UserOperationService {
   }
 
   /**
+   * Public version of computeUserOpHash for debugging (takes serialized UserOpData)
+   */
+  async computeUserOpHashFromData(userOp: UserOperationData): Promise<string> {
+    const packed: PackedUserOperation = {
+      sender: userOp.sender,
+      nonce: BigInt(userOp.nonce),
+      initCode: userOp.initCode,
+      callData: userOp.callData,
+      accountGasLimits: userOp.accountGasLimits,
+      preVerificationGas: BigInt(userOp.preVerificationGas),
+      gasFees: userOp.gasFees,
+      paymasterAndData: userOp.paymasterAndData,
+      signature: "0x", // Empty for hash computation (signature not included in hash)
+    };
+    return this.computeUserOpHash(packed);
+  }
+
+  /**
+   * Get userOpHash from EntryPoint contract directly
+   */
+  async getEntryPointUserOpHash(userOp: UserOperationData): Promise<string> {
+    const userOpStruct = {
+      sender: userOp.sender,
+      nonce: BigInt(userOp.nonce),
+      initCode: userOp.initCode,
+      callData: userOp.callData,
+      accountGasLimits: userOp.accountGasLimits,
+      preVerificationGas: BigInt(userOp.preVerificationGas),
+      gasFees: userOp.gasFees,
+      paymasterAndData: userOp.paymasterAndData,
+      signature: "0x", // Empty for hash computation
+    };
+
+    const hash = await this.entryPoint.getUserOpHash(userOpStruct);
+    return hash;
+  }
+
+  /**
+   * Test P256 signature verification directly against the ACP-204 precompile
+   */
+  async testP256Verify(
+    messageHash: string,
+    r: string,
+    s: string,
+    publicKeyX: string,
+    publicKeyY: string
+  ): Promise<{ valid: boolean; returnData: string }> {
+    // ACP-204 precompile address
+    const P256_VERIFIER = "0x0000000000000000000000000000000000000100";
+
+    // Convert hex strings to proper 32-byte buffers
+    const toBuffer32 = (hex: string): Buffer => {
+      const clean = hex.replace("0x", "").padStart(64, "0");
+      return Buffer.from(clean, "hex");
+    };
+
+    const hashBuf = toBuffer32(messageHash);
+    const rBuf = toBuffer32(r);
+    const sBuf = toBuffer32(s);
+    const xBuf = toBuffer32(publicKeyX);
+    const yBuf = toBuffer32(publicKeyY);
+
+    // Concatenate: hash || r || s || x || y (160 bytes total)
+    const input = Buffer.concat([hashBuf, rBuf, sBuf, xBuf, yBuf]);
+    const inputHex = "0x" + input.toString("hex");
+
+    console.log("[P256Test] Input length:", input.length, "bytes (expected 160)");
+    console.log("[P256Test] Components:");
+    console.log("  hash:", "0x" + hashBuf.toString("hex"));
+    console.log("  r:", "0x" + rBuf.toString("hex"));
+    console.log("  s:", "0x" + sBuf.toString("hex"));
+    console.log("  x:", "0x" + xBuf.toString("hex"));
+    console.log("  y:", "0x" + yBuf.toString("hex"));
+
+    try {
+      // Call precompile directly
+      const result = await this.provider.call({
+        to: P256_VERIFIER,
+        data: inputHex,
+      });
+
+      console.log("[P256Test] Raw result:", result);
+
+      // Decode result - precompile returns 1 for valid, 0 for invalid
+      const valid = result === "0x0000000000000000000000000000000000000000000000000000000000000001";
+      return { valid, returnData: result };
+    } catch (error: any) {
+      console.error("[P256Test] Call failed:", error.message);
+      return { valid: false, returnData: error.message };
+    }
+  }
+
+  /**
    * Pack gas limits (v0.7 format)
    */
   private packGasLimits(verificationGas: bigint, callGas: bigint): string {
@@ -593,6 +819,26 @@ export class UserOperationService {
    */
   private packGasFees(priorityFee: bigint, maxFee: bigint): string {
     return ethers.toBeHex((priorityFee << 128n) | maxFee, 32);
+  }
+
+  /**
+   * Pack paymasterAndData (v0.7 format)
+   * Format: paymaster (20 bytes) | verificationGasLimit (16 bytes) | postOpGasLimit (16 bytes) | data
+   */
+  private packPaymasterAndData(
+    paymaster: string,
+    verificationGasLimit: bigint = 100_000n,
+    postOpGasLimit: bigint = 50_000n,
+    data: string = "0x"
+  ): string {
+    if (!paymaster || paymaster === "0x") {
+      return "0x";
+    }
+    // Pack: paymaster (20 bytes) + verificationGasLimit (16 bytes) + postOpGasLimit (16 bytes)
+    const verificationHex = ethers.toBeHex(verificationGasLimit, 16).slice(2); // Remove 0x
+    const postOpHex = ethers.toBeHex(postOpGasLimit, 16).slice(2); // Remove 0x
+    const dataHex = data.startsWith("0x") ? data.slice(2) : data;
+    return paymaster.toLowerCase() + verificationHex + postOpHex + dataHex;
   }
 
   /**

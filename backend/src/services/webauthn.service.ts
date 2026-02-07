@@ -16,6 +16,13 @@ import { Redis } from "ioredis";
 import { SignJWT, jwtVerify } from "jose";
 import crypto from "crypto";
 import { encode as cborEncode, decode as cborDecode } from "cbor-x";
+import { ethers, Interface, JsonRpcProvider } from "ethers";
+import { RelayerService } from "./relayer.service.js";
+
+// Factory Interface for getAddress call
+const FACTORY_INTERFACE = new Interface([
+  "function getAddress(bytes32 publicKeyX, bytes32 publicKeyY, bytes32 credentialId) external view returns (address)",
+]);
 
 const prisma = new PrismaClient();
 
@@ -62,7 +69,29 @@ export interface SessionPayload {
 }
 
 export class WebAuthnService {
-  constructor(private redis: Redis) {}
+  private relayerService: RelayerService | null = null;
+
+  constructor(private redis: Redis) {
+    this.initRelayerService();
+  }
+
+  /**
+   * Initialize RelayerService for on-chain registration (optional)
+   * Gracefully skips if not configured - passkeys still work locally
+   */
+  private initRelayerService(): void {
+    if (process.env.RELAYER_PRIVATE_KEY && process.env.BIOMETRIC_REGISTRY_ADDRESS) {
+      try {
+        this.relayerService = new RelayerService(this.redis);
+        console.log("[WebAuthn] RelayerService initialized - on-chain registration enabled");
+      } catch (error: any) {
+        console.error("[WebAuthn] RelayerService init failed (on-chain disabled):", error.message);
+        this.relayerService = null;
+      }
+    } else {
+      console.log("[WebAuthn] RelayerService not configured - on-chain registration disabled");
+    }
+  }
 
   /**
    * Generate registration options for a new user
@@ -164,10 +193,17 @@ export class WebAuthnService {
     console.log("[DEBUG] X length (hex chars):", publicKey.x.replace('0x', '').length);
     console.log("[DEBUG] Y length (hex chars):", publicKey.y.replace('0x', '').length);
 
+    // Compute smart wallet address from factory BEFORE the transaction
+    // (since this is an async RPC call, we do it outside the transaction)
+    const walletAddress = await this.computeSmartWalletAddress(
+      publicKey.x,
+      publicKey.y,
+      credentialId
+    );
+    console.log(`[WebAuthn] Computed smart wallet address: ${walletAddress}`);
+
     // Create user and biometric identity atomically (or link to existing user)
     const user = await prisma.$transaction(async (tx) => {
-      // Derive deterministic wallet address from public key
-      const walletAddress = this.deriveWalletAddress(publicKey.x, publicKey.y);
 
       // Check if user already exists (e.g., from Google OAuth)
       const existingUser = await tx.user.findUnique({
@@ -282,6 +318,21 @@ export class WebAuthnService {
 
       return newUser;
     });
+
+    // === On-Chain Registration (Fire-and-Forget) ===
+    // This runs asynchronously and NEVER blocks the WebAuthn response
+    if (user && this.relayerService) {
+      this.triggerOnChainRegistration(
+        user.walletAddress!,
+        publicKey.x,
+        publicKey.y,
+        response.id, // credentialId from browser
+        user.biometricIdentities[user.biometricIdentities.length - 1]?.id
+      ).catch((err) => {
+        // Log but NEVER throw - on-chain failure must not affect local passkey
+        console.error("[OnChain] Failed (non-blocking):", err.message);
+      });
+    }
 
     // Clean up challenge
     await this.redis.del(`webauthn:challenge:${challengeId}`);
@@ -536,6 +587,28 @@ export class WebAuthnService {
       },
     });
 
+    // === On-Chain Verification (Fire-and-Forget) ===
+    // TODO: FUTURE ENHANCEMENT - On-chain login verification
+    // Currently disabled due to signature encoding mismatch between WebAuthn DER format
+    // and the P-256 precompile (ACP-204) expected format.
+    //
+    // To enable in future:
+    // 1. Debug DER signature parsing in relayer.service.ts parseDERSignature()
+    // 2. Ensure authenticatorData and clientDataHash encoding matches contract expectations
+    // 3. Verify counter synchronization between DB and contract
+    // 4. Uncomment the block below
+    //
+    // if (user.walletAddress && this.relayerService) {
+    //   this.triggerOnChainVerification(
+    //     user.walletAddress,
+    //     response.response.authenticatorData,
+    //     response.response.clientDataJSON,
+    //     response.response.signature
+    //   ).catch((err) => {
+    //     console.error("[OnChain] Verification failed (non-blocking):", err.message);
+    //   });
+    // }
+
     return {
       token,
       expiresAt,
@@ -751,20 +824,217 @@ export class WebAuthnService {
   }
 
   /**
-   * Derive deterministic wallet address from P-256 public key
-   * Uses keccak256 hash of coordinates, taking last 20 bytes
+   * Compute smart wallet address from P-256 public key via factory contract
+   * This returns the actual CREATE2-computed address that the factory will deploy
    */
-  private deriveWalletAddress(x: string, y: string): string {
-    // Concatenate x and y coordinates
-    const publicKeyConcat = x.replace("0x", "") + y.replace("0x", "");
+  private async computeSmartWalletAddress(
+    publicKeyX: string,
+    publicKeyY: string,
+    credentialId: string
+  ): Promise<string> {
+    const rpcUrl = process.env.AVALANCHE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+    const factoryAddress = process.env.P256_WALLET_FACTORY_ADDRESS;
 
-    // SHA-256 hash (Ethereum-style would use keccak256, but SHA-256 is simpler for our use)
-    const hash = crypto
-      .createHash("sha256")
-      .update(Buffer.from(publicKeyConcat, "hex"))
-      .digest("hex");
+    if (!factoryAddress) {
+      console.warn("[WebAuthn] P256_WALLET_FACTORY_ADDRESS not set, using fallback address derivation");
+      // Fallback to hash-based derivation (for local dev without factory)
+      const publicKeyConcat = publicKeyX.replace("0x", "") + publicKeyY.replace("0x", "");
+      const hash = crypto.createHash("sha256").update(Buffer.from(publicKeyConcat, "hex")).digest("hex");
+      return "0x" + hash.slice(-40);
+    }
 
-    // Take last 40 characters (20 bytes) as address
-    return "0x" + hash.slice(-40);
+    try {
+      const provider = new JsonRpcProvider(rpcUrl);
+
+      // Convert to bytes32 format
+      const pkX = this.toBytes32(publicKeyX);
+      const pkY = this.toBytes32(publicKeyY);
+      const credId = this.credentialIdToBytes32(credentialId);
+
+      const calldata = FACTORY_INTERFACE.encodeFunctionData("getAddress", [pkX, pkY, credId]);
+      const result = await provider.send("eth_call", [
+        { to: factoryAddress, data: calldata },
+        "latest",
+      ]);
+
+      const decoded = FACTORY_INTERFACE.decodeFunctionResult("getAddress", result);
+      const walletAddress = decoded[0] as string;
+      console.log(`[WebAuthn] Smart wallet address from factory: ${walletAddress}`);
+      return walletAddress;
+    } catch (error) {
+      console.error("[WebAuthn] Failed to get wallet address from factory:", error);
+      // Fallback to hash-based derivation
+      const publicKeyConcat = publicKeyX.replace("0x", "") + publicKeyY.replace("0x", "");
+      const hash = crypto.createHash("sha256").update(Buffer.from(publicKeyConcat, "hex")).digest("hex");
+      return "0x" + hash.slice(-40);
+    }
+  }
+
+  /**
+   * Convert hex string to bytes32 (pad left with zeros)
+   */
+  private toBytes32(hex: string): string {
+    const clean = hex.replace("0x", "");
+    return "0x" + clean.padStart(64, "0");
+  }
+
+  /**
+   * Convert base64url credential ID to bytes32
+   * Must match userop.service.ts logic: trailing zeros, not leading
+   */
+  private credentialIdToBytes32(credentialId: string): string {
+    const buffer = Buffer.from(credentialId, "base64url");
+    const bytes32 = Buffer.alloc(32);
+    buffer.copy(bytes32, 0, 0, Math.min(32, buffer.length));
+    return "0x" + bytes32.toString("hex");
+  }
+
+  /**
+   * Trigger on-chain biometric registration (fire-and-forget)
+   *
+   * CRITICAL: This method MUST NOT throw or block. Any failure is logged
+   * but does not affect the WebAuthn registration flow.
+   *
+   * @param userAddress - User's derived wallet address
+   * @param publicKeyX - P-256 X coordinate (hex with 0x prefix)
+   * @param publicKeyY - P-256 Y coordinate (hex with 0x prefix)
+   * @param credentialId - WebAuthn credential ID
+   * @param biometricId - Database ID for updating onChainTxHash
+   */
+  private async triggerOnChainRegistration(
+    userAddress: string,
+    publicKeyX: string,
+    publicKeyY: string,
+    credentialId: string,
+    biometricId?: string
+  ): Promise<void> {
+    if (!this.relayerService) {
+      console.log("[OnChain] RelayerService not initialized, skipping");
+      return;
+    }
+
+    try {
+      // Check relayer has sufficient funds
+      const hasBalance = await this.relayerService.hasSufficientBalance(0.01);
+      if (!hasBalance) {
+        console.warn("[OnChain] Relayer balance too low, skipping on-chain registration");
+        return;
+      }
+
+      console.log(`[OnChain] Starting registration for ${userAddress}`);
+
+      // Execute on-chain registration
+      const result = await this.relayerService.registerBiometric(
+        userAddress,
+        publicKeyX,
+        publicKeyY,
+        credentialId
+      );
+
+      console.log(`[OnChain] Success: txHash=${result.txHash}, block=${result.blockNumber}, gas=${result.gasUsed}`);
+
+      // Update database with transaction hash (for user visibility/tracking)
+      if (biometricId) {
+        await prisma.biometricIdentity.update({
+          where: { id: biometricId },
+          data: {
+            // Store tx hash in deviceInfo JSON (no schema change needed)
+            deviceInfo: {
+              ...(await prisma.biometricIdentity.findUnique({
+                where: { id: biometricId },
+                select: { deviceInfo: true }
+              }))?.deviceInfo as object || {},
+              onChainTxHash: result.txHash,
+              onChainBlock: result.blockNumber,
+              onChainStatus: result.status,
+            }
+          },
+        });
+        console.log(`[OnChain] Updated biometricIdentity ${biometricId} with txHash`);
+      }
+    } catch (error: any) {
+      // Check for "already registered" - this is OK, not an error
+      if (error.message?.includes("already has registered identity")) {
+        console.log(`[OnChain] User ${userAddress} already registered on-chain (OK)`);
+        return;
+      }
+
+      // Log error but NEVER re-throw
+      console.error(`[OnChain] Registration failed for ${userAddress}:`, error.message);
+
+      // Create audit log for on-chain failure (for debugging)
+      try {
+        await prisma.auditLog.create({
+          data: {
+            action: "ONCHAIN_REGISTER",
+            resourceType: "BiometricIdentity",
+            resourceId: biometricId || "unknown",
+            status: "FAILURE",
+            metadata: {
+              userAddress,
+              error: error.message,
+            },
+          },
+        });
+      } catch (auditError) {
+        // Even audit log failure should not propagate
+        console.error("[OnChain] Audit log also failed:", (auditError as Error).message);
+      }
+    }
+  }
+
+  /**
+   * Trigger on-chain biometric verification (fire-and-forget)
+   * Called on every passkey login for hackathon demo
+   *
+   * CRITICAL: This method MUST NOT throw or block. Any failure is logged
+   * but does not affect the login flow.
+   */
+  private async triggerOnChainVerification(
+    userAddress: string,
+    authenticatorDataB64: string,
+    clientDataJSONB64: string,
+    signatureB64: string
+  ): Promise<void> {
+    if (!this.relayerService) {
+      console.log("[OnChain] RelayerService not initialized, skipping verification");
+      return;
+    }
+
+    try {
+      // Check relayer has sufficient funds
+      const hasBalance = await this.relayerService.hasSufficientBalance(0.01);
+      if (!hasBalance) {
+        console.warn("[OnChain] Relayer balance too low, skipping on-chain verification");
+        return;
+      }
+
+      // Decode base64url to buffers
+      const authenticatorData = Buffer.from(authenticatorDataB64, "base64url");
+      const clientDataJSON = Buffer.from(clientDataJSONB64, "base64url");
+      const signature = Buffer.from(signatureB64, "base64url");
+
+      console.log(`[OnChain] Starting verification for ${userAddress}`);
+
+      // Execute on-chain verification
+      const result = await this.relayerService.verifyBiometricOnChain(
+        userAddress,
+        authenticatorData,
+        clientDataJSON,
+        signature
+      );
+
+      console.log(`[OnChain] Verification Success: txHash=${result.txHash}, block=${result.blockNumber}, gas=${result.gasUsed}`);
+
+    } catch (error: any) {
+      // Check for expected errors that aren't problems
+      if (error.message?.includes("IdentityNotFound")) {
+        console.log(`[OnChain] User ${userAddress} not registered on-chain yet (OK for existing users)`);
+        return;
+      }
+
+      // Log error but NEVER re-throw
+      console.error(`[OnChain] Verification failed for ${userAddress}:`, error.message);
+    }
   }
 }
