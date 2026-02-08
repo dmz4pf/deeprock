@@ -151,7 +151,7 @@ router.post(
       const service = getRelayerService();
 
       // Check relayer has sufficient balance
-      const hasBalance = await service.hassufficientBalance(0.1);
+      const hasBalance = await service.hasSufficientBalance(0.1);
       if (!hasBalance) {
         res.status(503).json({
           success: false,
@@ -299,7 +299,7 @@ router.post(
 router.get("/balance-check", requireAuth, async (req: Request, res: Response) => {
   try {
     const service = getRelayerService();
-    const hasBalance = await service.hassufficientBalance(0.1);
+    const hasBalance = await service.hasSufficientBalance(0.1);
     const status = await service.getStatus();
 
     res.json({
@@ -308,6 +308,173 @@ router.get("/balance-check", requireAuth, async (req: Request, res: Response) =>
       balance: status.balance,
       minRequired: "0.1",
       unit: "AVAX",
+    });
+  } catch (error: any) {
+    console.error("Balance check error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check balance",
+    });
+  }
+});
+
+// ==================== Faucet Endpoints ====================
+
+/**
+ * POST /api/relayer/faucet
+ * Get free test USDC (testnet only)
+ * Requires authentication - mints to user's smart wallet (for passkey users) or linked wallet
+ */
+router.post("/faucet", requireAuth, relayerLimiter, async (req: Request, res: Response) => {
+  try {
+    const service = getRelayerService();
+
+    if (!service.hasMockUsdc()) {
+      res.status(503).json({
+        success: false,
+        error: "Faucet not available",
+        code: "FAUCET_NOT_CONFIGURED",
+      });
+      return;
+    }
+
+    // Get user's wallet address and biometric identity from database
+    const { PrismaClient } = await import("@prisma/client");
+    const prisma = new PrismaClient();
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: {
+        walletAddress: true,
+        biometricIdentities: {
+          where: { isActive: true },
+          take: 1,
+          select: { publicKeyX: true, publicKeyY: true, credentialId: true }
+        }
+      },
+    });
+
+    // Determine target address based on auth flow:
+    // - WALLET users: Always use EOA (they use permit flow with MetaMask)
+    // - EMAIL/GOOGLE users: Use smart wallet if they have passkey, else EOA
+    let targetAddress: string;
+    let isSmartWallet = false;
+    const isWalletUser = req.user!.authProvider === "WALLET";
+
+    if (isWalletUser && user?.walletAddress) {
+      // Wallet users always use their EOA for permit-based flow
+      targetAddress = user.walletAddress;
+      console.log(`[Faucet] Wallet user - minting to EOA: ${targetAddress}`);
+    } else if (user?.biometricIdentities && user.biometricIdentities.length > 0) {
+      // Passkey user (EMAIL/GOOGLE) - compute their smart wallet address
+      const identity = user.biometricIdentities[0];
+      const { UserOperationService } = await import("../services/userop.service.js");
+      const redisForUserOp = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+      const userOpService = new UserOperationService(redisForUserOp);
+
+      targetAddress = await userOpService.getWalletAddress(
+        identity.publicKeyX,
+        identity.publicKeyY,
+        identity.credentialId
+      );
+      isSmartWallet = true;
+      console.log(`[Faucet] Passkey user - minting to smart wallet: ${targetAddress}`);
+    } else if (user?.walletAddress) {
+      // Fallback to EOA wallet (shouldn't normally happen)
+      targetAddress = user.walletAddress;
+      console.log(`[Faucet] Fallback - minting to EOA: ${targetAddress}`);
+    } else {
+      res.status(400).json({
+        success: false,
+        error: "No wallet or passkey linked to account.",
+        code: "NO_WALLET",
+      });
+      return;
+    }
+
+    // Parse optional amount (default 10,000 USDC)
+    const requestedAmount = req.body.amount ? BigInt(req.body.amount) : BigInt(10_000) * BigInt(10 ** 6);
+
+    // Check relayer has gas
+    if (!await service.hasSufficientBalance(0.01)) {
+      res.status(503).json({
+        success: false,
+        error: "Faucet temporarily unavailable",
+        code: "RELAYER_LOW_BALANCE",
+      });
+      return;
+    }
+
+    // Mint test USDC to target address
+    const result = await service.mintTestUsdc(targetAddress, requestedAmount);
+
+    // Get new balance
+    const newBalance = await service.getUsdcBalance(targetAddress);
+
+    res.json({
+      success: true,
+      transaction: {
+        txHash: result.txHash,
+        explorer: `https://testnet.snowtrace.io/tx/${result.txHash}`,
+      },
+      targetAddress,
+      isSmartWallet,
+      amount: requestedAmount.toString(),
+      amountFormatted: `${Number(requestedAmount) / 1_000_000} USDC`,
+      newBalance: newBalance,
+      newBalanceFormatted: `${Number(newBalance) / 1_000_000} USDC`,
+      message: isSmartWallet
+        ? "Test USDC sent to your smart wallet!"
+        : "Test USDC sent to your wallet!",
+    });
+  } catch (error: any) {
+    console.error("Faucet error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to dispense test tokens",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/relayer/usdc-balance/:address
+ * Get USDC balance for any address
+ */
+router.get("/usdc-balance/:address", async (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid address format",
+      });
+      return;
+    }
+
+    const service = getRelayerService();
+
+    if (!service.hasMockUsdc()) {
+      res.status(503).json({
+        success: false,
+        error: "USDC contract not configured",
+      });
+      return;
+    }
+
+    const balance = await service.getUsdcBalance(address);
+
+    res.json({
+      success: true,
+      address,
+      balance,
+      balanceFormatted: `${Number(balance) / 1_000_000} USDC`,
+      token: {
+        address: process.env.MOCK_USDC_ADDRESS,
+        symbol: "USDC",
+        decimals: 6,
+      },
     });
   } catch (error: any) {
     console.error("Balance check error:", error);

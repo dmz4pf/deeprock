@@ -1,6 +1,7 @@
 import { SiweMessage, generateNonce } from "siwe";
 import { PrismaClient } from "@prisma/client";
 import { Redis } from "ioredis";
+import { getAddress } from "ethers";
 
 const prisma = new PrismaClient();
 
@@ -71,9 +72,12 @@ export class WalletAuthService {
     nonce: string,
     chainId: number = 43113 // Avalanche Fuji testnet
   ): string {
+    // EIP-55: Checksum the address for SIWE compliance
+    const checksumAddress = getAddress(address);
+
     const siweMessage = new SiweMessage({
       domain: SIWE_DOMAIN,
-      address,
+      address: checksumAddress,
       statement: "Sign in to RWA Gateway with your wallet.",
       uri: SIWE_URI,
       version: "1",

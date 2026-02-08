@@ -1,4 +1,4 @@
-import { HealthCheck } from "./monitoring.service";
+import { HealthCheck } from "./monitoring.service.js";
 
 export type AlertSeverity = "INFO" | "WARNING" | "CRITICAL";
 

@@ -22,6 +22,9 @@ const ENTRYPOINT_ABI = [
   "function getUserOpHash(tuple(address sender, uint256 nonce, bytes initCode, bytes callData, bytes32 accountGasLimits, uint256 preVerificationGas, bytes32 gasFees, bytes paymasterAndData, bytes signature) userOp) external view returns (bytes32)",
   "function balanceOf(address account) external view returns (uint256)",
   "function handleOps(tuple(address sender, uint256 nonce, bytes initCode, bytes callData, bytes32 accountGasLimits, uint256 preVerificationGas, bytes32 gasFees, bytes paymasterAndData, bytes signature)[] ops, address payable beneficiary) external",
+  // Events for detecting UserOp execution status
+  "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)",
+  "event UserOperationRevertReason(bytes32 indexed userOpHash, address indexed sender, uint256 nonce, bytes revertReason)",
 ];
 
 // Factory ABI
@@ -94,6 +97,7 @@ export interface UserOpResult {
   txHash?: string;
   blockNumber?: number;
   status: "pending" | "success" | "failed";
+  revertReason?: string;
 }
 
 /**
@@ -641,11 +645,52 @@ export class UserOperationService {
         nonce: userOpStruct.nonce,
       });
 
+      // Check UserOperationEvent to determine if the inner execution succeeded
+      // The wrapper tx can succeed while the inner UserOp execution reverts
+      const entryPointInterface = new Interface(ENTRYPOINT_ABI);
+      let userOpSuccess = false;
+      let revertReason: string | undefined;
+
+      for (const log of receipt.logs) {
+        try {
+          const parsed = entryPointInterface.parseLog({
+            topics: log.topics as string[],
+            data: log.data,
+          });
+
+          if (parsed?.name === "UserOperationEvent") {
+            // UserOperationEvent(userOpHash, sender, paymaster, nonce, success, actualGasCost, actualGasUsed)
+            const eventSuccess = parsed.args[4]; // 5th argument is 'success'
+            console.log(`[UserOp] UserOperationEvent found: success=${eventSuccess}`);
+            userOpSuccess = eventSuccess;
+          }
+
+          if (parsed?.name === "UserOperationRevertReason") {
+            // UserOperationRevertReason(userOpHash, sender, nonce, revertReason)
+            const reasonBytes = parsed.args[3];
+            console.log(`[UserOp] UserOperationRevertReason found: ${reasonBytes}`);
+            try {
+              // Try to decode the revert reason
+              revertReason = ethers.toUtf8String(reasonBytes);
+            } catch {
+              revertReason = reasonBytes;
+            }
+          }
+        } catch {
+          // Not our event, skip
+        }
+      }
+
+      if (!userOpSuccess) {
+        console.error(`[UserOp] UserOperation execution REVERTED! Reason: ${revertReason || "unknown"}`);
+      }
+
       return {
         userOpHash,
         txHash: receipt.hash,
         blockNumber: receipt.blockNumber,
-        status: receipt.status === 1 ? "success" : "failed",
+        status: userOpSuccess ? "success" : "failed",
+        revertReason,
       };
     } catch (error: any) {
       console.error("[UserOp] Direct submission failed:", error.message);

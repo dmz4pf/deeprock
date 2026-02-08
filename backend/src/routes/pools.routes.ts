@@ -6,7 +6,11 @@ import { standardApiLimiter, investmentLimiter } from "../middleware/rateLimit.m
 import { WebAuthnService } from "../services/webauthn.service.js";
 import { RelayerService } from "../services/relayer.service.js";
 import { PermitService, getPermitService } from "../services/permit.service.js";
+import { UserOperationService } from "../services/userop.service.js";
 import { Redis } from "ioredis";
+
+// NAV base for 8 decimal precision (same as nav.service.ts)
+const NAV_BASE = 100000000n;
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -165,6 +169,7 @@ router.get("/", standardApiLimiter, optionalAuth, async (req: Request, res: Resp
         metadata: true,
         createdAt: true,
         updatedAt: true,
+        navPerShare: true,
       },
     });
 
@@ -189,6 +194,7 @@ router.get("/", standardApiLimiter, optionalAuth, async (req: Request, res: Resp
         lockupPeriod: metadata.lockupPeriod || 0,
         riskRating: metadata.riskRating || "medium",
         documents: metadata.documents,
+        navPerShare: pool.navPerShare ? (Number(pool.navPerShare) / 100_000_000).toFixed(8) : "1.00000000",
         createdAt: pool.createdAt.toISOString(),
         updatedAt: pool.updatedAt?.toISOString() || pool.createdAt.toISOString(),
         // Additional backend data
@@ -356,6 +362,7 @@ router.get("/:id", standardApiLimiter, optionalAuth, async (req: Request, res: R
         lockupPeriod: metadata.lockupPeriod || 0,
         riskRating: metadata.riskRating || "medium",
         documents: metadata.documents || [],
+        navPerShare: pool.navPerShare ? (Number(pool.navPerShare) / 100_000_000).toFixed(8) : "1.00000000",
         createdAt: pool.createdAt.toISOString(),
         updatedAt: pool.updatedAt.toISOString(),
         transactionCount: pool._count.investments,
@@ -522,11 +529,46 @@ router.post(
 
       // ============== INVESTMENT PROCESSING ==============
 
-      // Get user with wallet address for on-chain transaction
+      // ============== WALLET ROUTING ==============
+      // Determine target address based on auth provider:
+      // - WALLET users: investment goes to their EOA (permit-based flow)
+      // - EMAIL/GOOGLE users with passkey: investment goes to smart wallet
       const investorUser = await prisma.user.findUnique({
         where: { id: req.user!.userId },
-        select: { walletAddress: true },
+        select: {
+          walletAddress: true,
+          biometricIdentities: {
+            where: { isActive: true },
+            take: 1,
+            select: { publicKeyX: true, publicKeyY: true, credentialId: true }
+          }
+        },
       });
+
+      let targetAddress: string | null = null;
+      let isSmartWallet = false;
+      const isWalletUser = req.user!.authProvider === "WALLET";
+
+      if (isWalletUser && investorUser?.walletAddress) {
+        // Wallet users: investment goes to their EOA
+        targetAddress = investorUser.walletAddress;
+        console.log(`[Investment] Wallet user - investing from EOA: ${targetAddress}`);
+      } else if (investorUser?.biometricIdentities && investorUser.biometricIdentities.length > 0) {
+        // Passkey users: compute smart wallet address
+        const identity = investorUser.biometricIdentities[0];
+        const userOpService = new UserOperationService(redis);
+        targetAddress = await userOpService.getWalletAddress(
+          identity.publicKeyX,
+          identity.publicKeyY,
+          identity.credentialId
+        );
+        isSmartWallet = true;
+        console.log(`[Investment] Passkey user - investing to smart wallet: ${targetAddress}`);
+      } else if (investorUser?.walletAddress) {
+        // Fallback to EOA if no passkey
+        targetAddress = investorUser.walletAddress;
+        console.log(`[Investment] Fallback - investing from EOA: ${targetAddress}`);
+      }
 
       // Calculate shares (simplified: 1:1 ratio, real implementation would use pool's share price)
       const shares = amountBigInt;
@@ -552,15 +594,15 @@ router.post(
       let onChainStatus: "submitted" | "skipped" | "failed" = "skipped";
       let finalStatus: "CONFIRMED" | "PENDING" | "FAILED" = "PENDING";
 
-      if (relayerService?.hasRwaPool() && investorUser?.walletAddress) {
+      if (relayerService?.hasRwaPool() && targetAddress) {
         try {
           // Check relayer has sufficient balance
           if (await relayerService.hasSufficientBalance(0.01)) {
-            console.log(`[Investment] Submitting on-chain: pool=${pool.chainPoolId}, amount=${amount}`);
+            console.log(`[Investment] Submitting on-chain: pool=${pool.chainPoolId}, target=${targetAddress}, amount=${amount}`);
 
             const txResult = await relayerService.submitInvestment(
               pool.chainPoolId,
-              investorUser.walletAddress,
+              targetAddress,  // Smart wallet OR EOA based on auth flow
               amountBigInt
             );
 
@@ -615,8 +657,8 @@ router.post(
 
           console.error("[Investment] On-chain error:", onChainError.message);
         }
-      } else if (!investorUser?.walletAddress) {
-        console.log("[Investment] No wallet address - keeping as PENDING");
+      } else if (!targetAddress) {
+        console.log("[Investment] No wallet configured - keeping as PENDING");
       }
 
       // Log the action
@@ -631,6 +673,8 @@ router.post(
             poolId: pool.id,
             amount: amount,
             passkeyVerified: true,
+            targetAddress,
+            isSmartWallet,
             onChainStatus,
             txHash,
             finalStatus,
@@ -707,6 +751,43 @@ router.post(
         return;
       }
 
+      // Check lockup period from pool metadata
+      const metadata = (pool.metadata as any) || {};
+      const lockupDays = metadata.lockupPeriod || 0;
+
+      if (lockupDays > 0) {
+        // Get user's earliest investment in this pool
+        const earliestInvestment = await prisma.investment.findFirst({
+          where: {
+            poolId: pool.id,
+            userId: req.user!.userId,
+            type: "INVEST",
+            status: "CONFIRMED",
+          },
+          orderBy: { createdAt: "asc" },
+          select: { createdAt: true },
+        });
+
+        if (earliestInvestment) {
+          const unlockDate = new Date(earliestInvestment.createdAt);
+          unlockDate.setDate(unlockDate.getDate() + lockupDays);
+          const now = new Date();
+
+          if (now < unlockDate) {
+            const daysRemaining = Math.ceil((unlockDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            res.status(400).json({
+              success: false,
+              error: `Position is locked for ${daysRemaining} more day(s)`,
+              code: "POSITION_LOCKED",
+              lockupDays,
+              unlockDate: unlockDate.toISOString(),
+              daysRemaining,
+            });
+            return;
+          }
+        }
+      }
+
       // Get user's current holdings
       const userInvestments = await prisma.investment.aggregate({
         where: {
@@ -731,16 +812,61 @@ router.post(
         return;
       }
 
-      // Calculate amount (simplified: 1:1 ratio)
-      const amount = sharesBigInt;
-
-      // Get user with wallet address for on-chain transaction
+      // ============== WALLET ROUTING ==============
+      // Determine target address based on auth provider:
+      // - WALLET users: funds go to their EOA (permit-based flow)
+      // - EMAIL/GOOGLE users with passkey: funds go to smart wallet
       const redeemUser = await prisma.user.findUnique({
         where: { id: req.user!.userId },
-        select: { walletAddress: true },
+        select: {
+          walletAddress: true,
+          biometricIdentities: {
+            where: { isActive: true },
+            take: 1,
+            select: { publicKeyX: true, publicKeyY: true, credentialId: true }
+          }
+        },
       });
 
-      // Create redemption record
+      let targetAddress: string;
+      let isSmartWallet = false;
+      const isWalletUser = req.user!.authProvider === "WALLET";
+
+      if (isWalletUser && redeemUser?.walletAddress) {
+        // Wallet users: funds go to their EOA
+        targetAddress = redeemUser.walletAddress;
+        console.log(`[Redemption] Wallet user - redeeming to EOA: ${targetAddress}`);
+      } else if (redeemUser?.biometricIdentities && redeemUser.biometricIdentities.length > 0) {
+        // Passkey users: compute smart wallet address
+        const identity = redeemUser.biometricIdentities[0];
+        const userOpService = new UserOperationService(redis);
+        targetAddress = await userOpService.getWalletAddress(
+          identity.publicKeyX,
+          identity.publicKeyY,
+          identity.credentialId
+        );
+        isSmartWallet = true;
+        console.log(`[Redemption] Passkey user - redeeming to smart wallet: ${targetAddress}`);
+      } else if (redeemUser?.walletAddress) {
+        // Fallback to EOA if no passkey
+        targetAddress = redeemUser.walletAddress;
+        console.log(`[Redemption] Fallback - redeeming to EOA: ${targetAddress}`);
+      } else {
+        res.status(400).json({
+          success: false,
+          error: "No wallet configured for redemption",
+          code: "NO_WALLET",
+        });
+        return;
+      }
+
+      // ============== NAV-BASED VALUE CALCULATION ==============
+      // Redemption amount = shares × navPerShare / NAV_BASE (includes accrued yield)
+      const currentNav = pool.navPerShare ?? NAV_BASE;
+      const amount = (sharesBigInt * currentNav) / NAV_BASE;
+      console.log(`[Redemption] NAV calculation: ${sharesBigInt} shares × ${currentNav}/${NAV_BASE} = ${amount}`);
+
+      // Create redemption record with NAV capture
       const redemption = await prisma.investment.create({
         data: {
           userId: req.user!.userId,
@@ -749,6 +875,7 @@ router.post(
           amount,
           shares: sharesBigInt,
           status: "PENDING",
+          sharePriceAtPurchase: currentNav, // Capture NAV at redemption for tracking
         },
       });
 
@@ -756,14 +883,14 @@ router.post(
       let txHash: string | null = null;
       let onChainStatus: "submitted" | "skipped" | "failed" = "skipped";
 
-      if (relayerService?.hasRwaPool() && redeemUser?.walletAddress) {
+      if (relayerService?.hasRwaPool() && targetAddress) {
         try {
           if (await relayerService.hasSufficientBalance(0.01)) {
-            console.log(`[Redemption] Submitting on-chain: pool=${pool.chainPoolId}, shares=${shares}`);
+            console.log(`[Redemption] Submitting on-chain: pool=${pool.chainPoolId}, target=${targetAddress}, shares=${shares}`);
 
             const txResult = await relayerService.submitRedemption(
               pool.chainPoolId,
-              redeemUser.walletAddress,
+              targetAddress,  // Smart wallet OR EOA based on auth flow
               sharesBigInt
             );
 
@@ -813,6 +940,10 @@ router.post(
           metadata: {
             poolId: pool.id,
             shares: shares,
+            amount: amount.toString(),
+            navAtRedemption: currentNav.toString(),
+            targetAddress,
+            isSmartWallet,
             onChainStatus,
             txHash,
           },

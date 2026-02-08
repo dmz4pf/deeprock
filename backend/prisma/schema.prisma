@@ -20,13 +20,16 @@ model User {
   emailVerified       Boolean             @default(false) @map("email_verified")
   googleId            String?             @unique @map("google_id")
   smartWalletAddress  String?             @map("smart_wallet_address")
-  auditLogs           AuditLog[]
-  biometricIdentities BiometricIdentity[]
-  credentials         Credential[]
-  documents           Document[]
-  investments         Investment[]
-  recoveryCodes       RecoveryCode[]
-  sessions            Session[]
+  auditLogs             AuditLog[]
+  biometricIdentities   BiometricIdentity[]
+  credentials           Credential[]
+  documents             Document[]
+  investments           Investment[]
+  recoveryCodes         RecoveryCode[]
+  sessions              Session[]
+  positionHighWatermarks PositionHighWatermark[]
+  redemptionQueues      RedemptionQueue[]
+  poolSwaps             PoolSwap[]
 
   @@index([googleId])
   @@index([authProvider])
@@ -90,24 +93,34 @@ model Credential {
 }
 
 model AssetPool {
-  id              String         @id @default(cuid())
-  chainPoolId     Int            @unique @map("chain_pool_id")
-  name            String
-  assetClass      AssetClass     @map("asset_class")
-  rwaTokenAddress String         @map("rwa_token_address")
-  yieldRateBps    Int            @map("yield_rate_bps")
-  totalDeposited  BigInt         @default(0) @map("total_deposited")
-  investorCount   Int            @default(0) @map("investor_count")
-  minInvestment   BigInt         @map("min_investment")
-  maxInvestment   BigInt         @map("max_investment")
-  status          PoolStatus     @default(ACTIVE)
-  metadata        Json?
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  navPerShare     BigInt         @default(100000000) @map("nav_per_share")
-  lastNavUpdate   DateTime       @default(now()) @map("last_nav_update")
-  investments     Investment[]
-  yieldHistory    YieldHistory[]
+  id                        String            @id @default(cuid())
+  chainPoolId               Int               @unique @map("chain_pool_id")
+  name                      String
+  assetClass                AssetClass        @map("asset_class")
+  rwaTokenAddress           String            @map("rwa_token_address")
+  yieldRateBps              Int               @map("yield_rate_bps")
+  totalDeposited            BigInt            @default(0) @map("total_deposited")
+  investorCount             Int               @default(0) @map("investor_count")
+  minInvestment             BigInt            @map("min_investment")
+  maxInvestment             BigInt            @map("max_investment")
+  status                    PoolStatus        @default(ACTIVE)
+  metadata                  Json?
+  createdAt                 DateTime          @default(now()) @map("created_at")
+  updatedAt                 DateTime          @updatedAt @map("updated_at")
+  navPerShare               BigInt            @default(100000000) @map("nav_per_share")
+  lastNavUpdate             DateTime          @default(now()) @map("last_nav_update")
+  // Redemption queue settings
+  settlementDays            Int               @default(1) @map("settlement_days")
+  largeRedemptionThreshold  BigInt?           @map("large_redemption_threshold")
+  // Relations
+  investments               Investment[]
+  yieldHistory              YieldHistory[]
+  feeConfig                 FeeConfig?
+  navHistory                NavHistory[]
+  accruedFees               AccruedFee[]
+  redemptionQueues          RedemptionQueue[]
+  sourceSwaps               PoolSwap[]        @relation("SourcePool")
+  targetSwaps               PoolSwap[]        @relation("TargetPool")
 
   @@index([assetClass])
   @@index([status])
@@ -274,4 +287,173 @@ enum InvestmentStatus {
   PENDING
   CONFIRMED
   FAILED
+}
+
+// ==================== Fee System ====================
+
+model FeeConfig {
+  id                String    @id @default(cuid())
+  poolId            String    @unique @map("pool_id")
+  managementFeeBps  Int       @default(50) @map("management_fee_bps") // 0.5% annually
+  performanceFeeBps Int       @default(1000) @map("performance_fee_bps") // 10% of yield
+  entryFeeBps       Int       @default(0) @map("entry_fee_bps")
+  exitFeeBps        Int       @default(10) @map("exit_fee_bps") // 0.1%
+  feeRecipient      String    @map("fee_recipient")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  pool              AssetPool @relation(fields: [poolId], references: [id])
+
+  @@map("fee_configs")
+}
+
+model AccruedFee {
+  id        String    @id @default(cuid())
+  poolId    String    @map("pool_id")
+  feeType   FeeType   @map("fee_type")
+  amount    BigInt
+  period    String    // Date string: "2026-02-08"
+  status    FeeStatus @default(PENDING)
+  txHash    String?   @map("tx_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  pool      AssetPool @relation(fields: [poolId], references: [id])
+
+  @@index([poolId])
+  @@index([status])
+  @@index([period])
+  @@map("accrued_fees")
+}
+
+model PositionHighWatermark {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  poolId           String   @map("pool_id")
+  highWatermarkNav BigInt   @map("high_watermark_nav")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, poolId])
+  @@map("position_high_watermarks")
+}
+
+enum FeeType {
+  ENTRY
+  EXIT
+  MANAGEMENT
+  PERFORMANCE
+}
+
+enum FeeStatus {
+  PENDING
+  COLLECTED
+  FAILED
+}
+
+// ==================== NAV System ====================
+
+model NavHistory {
+  id          String    @id @default(cuid())
+  poolId      String    @map("pool_id")
+  navPerShare BigInt    @map("nav_per_share")
+  previousNav BigInt    @map("previous_nav")
+  source      NavSource @default(ADMIN)
+  adminId     String?   @map("admin_id")
+  reason      String?
+  txHash      String?   @map("tx_hash")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  pool        AssetPool @relation(fields: [poolId], references: [id])
+
+  @@index([poolId])
+  @@index([createdAt])
+  @@map("nav_history")
+}
+
+enum NavSource {
+  ADMIN
+  SIMULATION
+  ORACLE
+}
+
+// ==================== Redemption Queue ====================
+
+model RedemptionQueue {
+  id               String           @id @default(cuid())
+  userId           String           @map("user_id")
+  poolId           String           @map("pool_id")
+  shares           BigInt
+  queuePosition    Int              @map("queue_position")
+  navAtRequest     BigInt           @map("nav_at_request")
+  estimatedAmount  BigInt           @map("estimated_amount")
+  settlementDate   DateTime         @map("settlement_date")
+  status           RedemptionStatus @default(QUEUED)
+  requiresApproval Boolean          @default(false) @map("requires_approval")
+  approvedBy       String?          @map("approved_by")
+  filledShares     BigInt           @default(0) @map("filled_shares")
+  txHash           String?          @map("tx_hash")
+  reason           String?          // For rejection/cancellation reason
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pool             AssetPool        @relation(fields: [poolId], references: [id])
+
+  @@index([userId])
+  @@index([poolId])
+  @@index([status])
+  @@index([settlementDate])
+  @@map("redemption_queue")
+}
+
+enum RedemptionStatus {
+  QUEUED
+  PENDING_APPROVAL
+  APPROVED
+  PROCESSING
+  PARTIALLY_FILLED
+  SETTLED
+  CANCELLED
+  REJECTED
+  FAILED
+}
+
+// ==================== Pool Swaps ====================
+
+model PoolSwap {
+  id              String     @id @default(cuid())
+  userId          String     @map("user_id")
+  sourcePoolId    String     @map("source_pool_id")
+  targetPoolId    String     @map("target_pool_id")
+  sharesSwapped   BigInt     @map("shares_swapped")
+  sourceAmount    BigInt     @map("source_amount")
+  targetAmount    BigInt     @map("target_amount")
+  targetShares    BigInt     @map("target_shares")
+  fee             BigInt     @default(0)
+  sourceNavAtSwap BigInt     @map("source_nav_at_swap")
+  targetNavAtSwap BigInt     @map("target_nav_at_swap")
+  slippageBps     Int        @default(50) @map("slippage_bps") // 0.5%
+  minOutputAmount BigInt?    @map("min_output_amount")
+  status          SwapStatus @default(PENDING)
+  txHash          String?    @map("tx_hash")
+  errorMessage    String?    @map("error_message")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourcePool      AssetPool  @relation("SourcePool", fields: [sourcePoolId], references: [id])
+  targetPool      AssetPool  @relation("TargetPool", fields: [targetPoolId], references: [id])
+
+  @@index([userId])
+  @@index([sourcePoolId])
+  @@index([targetPoolId])
+  @@index([status])
+  @@map("pool_swaps")
+}
+
+enum SwapStatus {
+  PENDING
+  BUILDING
+  AWAITING_SIGNATURE
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  CANCELLED
 }

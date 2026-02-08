@@ -47,12 +47,14 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
             yieldRateBps: true,
             status: true,
             navPerShare: true,
+            metadata: true, // Include metadata for lockup period
           },
         },
       },
+      orderBy: { createdAt: "asc" }, // Order by date to track earliest investment
     });
 
-    // Aggregate by pool with NAV tracking
+    // Aggregate by pool with NAV tracking and lockup data
     const holdingsMap = new Map<
       string,
       {
@@ -67,10 +69,16 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         currentNavPerShare: bigint;
         weightedPurchaseNav: bigint;
         weightedNavDivisor: bigint;
+        // Lockup tracking
+        lockupPeriod: number;
+        earliestInvestmentDate: Date | null;
       }
     >();
 
     for (const inv of investments) {
+      const poolMetadata = (inv.pool.metadata as any) || {};
+      const lockupDays = poolMetadata.lockupPeriod || 0;
+
       const existing = holdingsMap.get(inv.poolId) || {
         poolId: inv.poolId,
         poolName: inv.pool.name,
@@ -83,6 +91,8 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         currentNavPerShare: inv.pool.navPerShare ?? NAV_BASE,
         weightedPurchaseNav: 0n,
         weightedNavDivisor: 0n,
+        lockupPeriod: lockupDays,
+        earliestInvestmentDate: null,
       };
 
       if (inv.type === InvestmentType.INVEST) {
@@ -92,6 +102,10 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         const purchaseNav = inv.sharePriceAtPurchase ?? NAV_BASE;
         existing.weightedPurchaseNav += inv.shares * purchaseNav;
         existing.weightedNavDivisor += inv.shares;
+        // Track earliest investment date (for lockup calculation)
+        if (!existing.earliestInvestmentDate || inv.createdAt < existing.earliestInvestmentDate) {
+          existing.earliestInvestmentDate = inv.createdAt;
+        }
       } else {
         existing.totalRedeemed += inv.amount;
         existing.totalShares -= inv.shares;
@@ -117,6 +131,25 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
         const { currentValue, costBasis, unrealizedGain, gainPercent } =
           navService.calculateCurrentValue(h.totalShares, h.currentNavPerShare, avgPurchaseNav);
 
+        // Calculate lockup status
+        let unlockDate: string | null = null;
+        let daysRemaining = 0;
+        let isLocked = false;
+
+        if (h.lockupPeriod > 0 && h.earliestInvestmentDate) {
+          const unlock = new Date(h.earliestInvestmentDate);
+          unlock.setDate(unlock.getDate() + h.lockupPeriod);
+          unlockDate = unlock.toISOString();
+
+          const now = new Date();
+          if (now < unlock) {
+            isLocked = true;
+            daysRemaining = Math.ceil(
+              (unlock.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            );
+          }
+        }
+
         return {
           poolId: h.poolId,
           poolName: h.poolName,
@@ -133,6 +166,11 @@ router.get("/", standardApiLimiter, async (req: Request, res: Response) => {
           unrealizedGain: unrealizedGain.toString(),
           gainPercent,
           navPerShare: navService.formatNav(h.currentNavPerShare),
+          // Lockup status
+          lockupPeriod: h.lockupPeriod,
+          unlockDate,
+          daysRemaining,
+          isLocked,
         };
       });
 
@@ -347,8 +385,8 @@ router.get("/transactions", standardApiLimiter, async (req: Request, res: Respon
 
     const formattedTransactions = transactions.map((tx) => ({
       id: tx.id,
-      type: tx.type,
-      status: tx.status,
+      type: tx.type.toLowerCase(), // Convert INVEST/REDEEM to invest/redeem for frontend
+      status: tx.status.toLowerCase(), // Convert CONFIRMED/PENDING to confirmed/pending
       poolId: tx.poolId,
       poolName: tx.pool.name,
       assetClass: tx.pool.assetClass,
@@ -460,6 +498,138 @@ router.get("/documents", standardApiLimiter, async (req: Request, res: Response)
     res.status(500).json({
       success: false,
       error: "Failed to fetch documents",
+    });
+  }
+});
+
+/**
+ * GET /api/portfolio/history
+ * Get portfolio value history for chart (calculated from investments + APY)
+ */
+router.get("/history", standardApiLimiter, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    // Get all confirmed investments with their pools
+    const investments = await prisma.investment.findMany({
+      where: {
+        userId,
+        status: InvestmentStatus.CONFIRMED,
+      },
+      include: {
+        pool: {
+          select: {
+            yieldRateBps: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (investments.length === 0) {
+      res.json({
+        success: true,
+        history: [],
+      });
+      return;
+    }
+
+    // Find the earliest investment date
+    const firstInvestment = investments[0];
+    const startDate = new Date(firstInvestment.createdAt);
+    startDate.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    // Calculate daily portfolio values
+    const history: { date: number; value: string }[] = [];
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    // Track active positions and their values
+    type Position = {
+      shares: bigint;
+      costBasis: bigint;
+      purchaseNav: bigint;
+      yieldRateBps: number;
+      purchaseDate: Date;
+    };
+    const positions: Position[] = [];
+
+    // Iterate through each day
+    for (
+      let currentDate = new Date(startDate);
+      currentDate <= today;
+      currentDate = new Date(currentDate.getTime() + dayMs)
+    ) {
+      // Add any investments that happened on or before this date
+      for (const inv of investments) {
+        const invDate = new Date(inv.createdAt);
+        invDate.setHours(0, 0, 0, 0);
+
+        if (invDate <= currentDate) {
+          // Check if this investment is already tracked
+          const alreadyTracked = positions.some(
+            (p) =>
+              p.purchaseDate.getTime() === invDate.getTime() &&
+              p.shares === inv.shares &&
+              p.costBasis === inv.amount
+          );
+
+          if (!alreadyTracked) {
+            if (inv.type === InvestmentType.INVEST) {
+              positions.push({
+                shares: inv.shares,
+                costBasis: inv.amount,
+                purchaseNav: inv.sharePriceAtPurchase ?? NAV_BASE,
+                yieldRateBps: inv.pool.yieldRateBps,
+                purchaseDate: invDate,
+              });
+            }
+            // Note: REDEEM handling would reduce positions, simplified for now
+          }
+        }
+      }
+
+      // Calculate total portfolio value for this day
+      let totalValue = 0n;
+
+      for (const pos of positions) {
+        // Calculate days since purchase
+        const daysSincePurchase = Math.floor(
+          (currentDate.getTime() - pos.purchaseDate.getTime()) / dayMs
+        );
+
+        // Calculate NAV growth: NAV = purchaseNav * (1 + APY/365)^days
+        // Simplified: NAV = purchaseNav * (1 + (APY * days) / 365 / 10000)
+        const dailyGrowthBps =
+          BigInt(pos.yieldRateBps) * BigInt(daysSincePurchase);
+        const growthFactor =
+          NAV_BASE + (dailyGrowthBps * NAV_BASE) / 365n / 10000n;
+
+        // Current value = shares * currentNav / NAV_BASE
+        const currentNav = (pos.purchaseNav * growthFactor) / NAV_BASE;
+        const positionValue = (pos.shares * currentNav) / NAV_BASE;
+
+        totalValue += positionValue;
+      }
+
+      // Add data point (date as unix timestamp in seconds)
+      history.push({
+        date: Math.floor(currentDate.getTime() / 1000),
+        value: totalValue.toString(),
+      });
+    }
+
+    res.json({
+      success: true,
+      history,
+    });
+  } catch (error: any) {
+    console.error("Portfolio history error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch portfolio history",
     });
   }
 });

@@ -11,10 +11,21 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title RWAPool
  * @notice Investment pool for Real World Assets on Avalanche
- * @dev Handles USDC deposits/withdrawals with passkey-signed authorization via relayer
+ * @dev Handles USDC deposits/withdrawals with NAV-based pricing and fee collection
  */
 contract RWAPool is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
+    // ==================== Constants ====================
+
+    /// @notice NAV base (8 decimals) - 1.00000000 = 100_000_000
+    uint256 public constant NAV_BASE = 100_000_000;
+
+    /// @notice Maximum NAV change per update (10% = 1000 bps)
+    uint256 public constant MAX_NAV_CHANGE_BPS = 1000;
+
+    /// @notice Basis points denominator
+    uint256 public constant BPS_DENOMINATOR = 10000;
 
     // ==================== State ====================
 
@@ -24,8 +35,33 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
     /// @notice BiometricRegistry for passkey verification
     address public biometricRegistry;
 
+    /// @notice NAV admin address (can update NAV)
+    address public navAdmin;
+
+    /// @notice Fee treasury address
+    address public feeTreasury;
+
     /// @notice Trusted relayers that can submit meta-transactions
     mapping(address => bool) public trustedRelayers;
+
+    /// @notice NAV data per pool
+    struct PoolNav {
+        uint256 navPerShare;      // Current NAV per share (8 decimals)
+        uint256 lastUpdate;       // Last update timestamp
+        uint256 minNav;           // Minimum allowed NAV (circuit breaker)
+    }
+
+    /// @notice Pool NAV data
+    mapping(uint256 => PoolNav) public poolNavs;
+
+    /// @notice Fee configuration per pool (in basis points)
+    struct FeeConfig {
+        uint256 entryFeeBps;      // Entry fee (default 0)
+        uint256 exitFeeBps;       // Exit fee (default 10 = 0.1%)
+    }
+
+    /// @notice Pool fee configuration
+    mapping(uint256 => FeeConfig) public poolFees;
 
     /// @notice Pool information
     struct Pool {
@@ -82,6 +118,31 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
 
     event RelayerUpdated(address indexed relayer, bool trusted);
 
+    event NavUpdated(
+        uint256 indexed chainPoolId,
+        uint256 oldNav,
+        uint256 newNav,
+        address updatedBy,
+        uint256 timestamp
+    );
+
+    event NavAdminUpdated(address indexed oldAdmin, address indexed newAdmin);
+
+    event FeeTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+
+    event FeeConfigUpdated(
+        uint256 indexed chainPoolId,
+        uint256 entryFeeBps,
+        uint256 exitFeeBps
+    );
+
+    event FeeCollected(
+        uint256 indexed chainPoolId,
+        address indexed investor,
+        uint256 feeAmount,
+        string feeType
+    );
+
     // ==================== Errors ====================
 
     error PoolNotFound();
@@ -96,6 +157,10 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
     error DeadlineExpired();
     error ZeroAmount();
     error PoolAlreadyExists();
+    error NotNavAdmin();
+    error NavChangeTooLarge();
+    error NavBelowMinimum();
+    error InvalidNav();
 
     // ==================== Constructor ====================
 
@@ -126,6 +191,19 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
             minInvestment: minInvestment,
             maxInvestment: maxInvestment,
             active: true
+        });
+
+        // Initialize NAV at 1.00000000 (NAV_BASE)
+        poolNavs[chainPoolId] = PoolNav({
+            navPerShare: NAV_BASE,
+            lastUpdate: block.timestamp,
+            minNav: NAV_BASE / 2 // 50% circuit breaker
+        });
+
+        // Initialize default fees (0% entry, 0.1% exit)
+        poolFees[chainPoolId] = FeeConfig({
+            entryFeeBps: 0,
+            exitFeeBps: 10
         });
 
         poolCount++;
@@ -272,25 +350,43 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
 
         Pool storage pool = pools[chainPoolId];
         if (!pool.active) revert PoolNotActive();
-        if (amount < pool.minInvestment) revert InvestmentTooLow();
+
+        // Calculate entry fee
+        FeeConfig storage fees = poolFees[chainPoolId];
+        uint256 entryFee = (amount * fees.entryFeeBps) / BPS_DENOMINATOR;
+        uint256 netAmount = amount - entryFee;
+
+        if (netAmount < pool.minInvestment) revert InvestmentTooLow();
 
         Position storage pos = positions[chainPoolId][investor];
-        if (pos.depositedAmount + amount > pool.maxInvestment) revert InvestmentTooHigh();
+        if (pos.depositedAmount + netAmount > pool.maxInvestment) revert InvestmentTooHigh();
 
-        // Calculate shares (1:1 for simplicity, can add NAV calculation later)
-        uint256 shares = amount;
+        // Get current NAV (defaults to NAV_BASE if not set)
+        uint256 currentNav = poolNavs[chainPoolId].navPerShare;
+        if (currentNav == 0) currentNav = NAV_BASE;
+
+        // Calculate shares based on NAV
+        // shares = (amount * NAV_BASE) / currentNav
+        // Example: $1000 at NAV 1.10 = 1000 * 100_000_000 / 110_000_000 = 909.09 shares
+        uint256 shares = (netAmount * NAV_BASE) / currentNav;
 
         // Transfer USDC from investor to pool
         usdc.safeTransferFrom(investor, address(this), amount);
 
+        // Send entry fee to treasury
+        if (entryFee > 0 && feeTreasury != address(0)) {
+            usdc.safeTransfer(feeTreasury, entryFee);
+            emit FeeCollected(chainPoolId, investor, entryFee, "ENTRY");
+        }
+
         // Update state
-        pool.totalDeposited += amount;
+        pool.totalDeposited += netAmount;
         pool.totalShares += shares;
         pos.shares += shares;
-        pos.depositedAmount += amount;
+        pos.depositedAmount += netAmount;
         pos.lastDepositTime = block.timestamp;
 
-        emit Investment(chainPoolId, investor, amount, shares, block.timestamp);
+        emit Investment(chainPoolId, investor, netAmount, shares, block.timestamp);
     }
 
     function _redeem(
@@ -305,22 +401,40 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
 
         if (pos.shares < shares) revert InsufficientShares();
 
-        // Calculate redemption amount (1:1 for simplicity)
-        uint256 amount = shares;
+        // Get current NAV
+        uint256 currentNav = poolNavs[chainPoolId].navPerShare;
+        if (currentNav == 0) currentNav = NAV_BASE;
+
+        // Calculate redemption amount based on NAV
+        // grossAmount = (shares * currentNav) / NAV_BASE
+        // Example: 909 shares at NAV 1.15 = 909 * 115_000_000 / 100_000_000 = $1045.35
+        uint256 grossAmount = (shares * currentNav) / NAV_BASE;
+
+        // Calculate exit fee
+        FeeConfig storage fees = poolFees[chainPoolId];
+        uint256 exitFee = (grossAmount * fees.exitFeeBps) / BPS_DENOMINATOR;
+        uint256 netAmount = grossAmount - exitFee;
 
         // Check pool has sufficient balance
-        if (usdc.balanceOf(address(this)) < amount) revert InsufficientBalance();
+        if (usdc.balanceOf(address(this)) < grossAmount) revert InsufficientBalance();
 
         // Update state before transfer (CEI pattern)
-        pool.totalDeposited -= amount;
+        pool.totalDeposited -= grossAmount;
         pool.totalShares -= shares;
         pos.shares -= shares;
-        pos.depositedAmount -= amount;
+        // Adjust deposited amount proportionally
+        pos.depositedAmount = (pos.depositedAmount * (pos.shares)) / (pos.shares + shares);
 
-        // Transfer USDC to investor
-        usdc.safeTransfer(investor, amount);
+        // Transfer USDC to investor (net of fee)
+        usdc.safeTransfer(investor, netAmount);
 
-        emit Redemption(chainPoolId, investor, shares, amount, block.timestamp);
+        // Send exit fee to treasury
+        if (exitFee > 0 && feeTreasury != address(0)) {
+            usdc.safeTransfer(feeTreasury, exitFee);
+            emit FeeCollected(chainPoolId, investor, exitFee, "EXIT");
+        }
+
+        emit Redemption(chainPoolId, investor, shares, netAmount, block.timestamp);
     }
 
     // ==================== View Functions ====================
@@ -400,5 +514,132 @@ contract RWAPool is Ownable, Pausable, ReentrancyGuard {
      */
     function emergencyWithdraw(address to, uint256 amount) external onlyOwner {
         usdc.safeTransfer(to, amount);
+    }
+
+    // ==================== NAV Management ====================
+
+    /**
+     * @notice Set NAV admin address
+     */
+    function setNavAdmin(address _navAdmin) external onlyOwner {
+        address oldAdmin = navAdmin;
+        navAdmin = _navAdmin;
+        emit NavAdminUpdated(oldAdmin, _navAdmin);
+    }
+
+    /**
+     * @notice Update NAV for a pool (NAV admin only)
+     * @param chainPoolId Pool to update
+     * @param newNav New NAV value (8 decimals)
+     */
+    function updateNav(uint256 chainPoolId, uint256 newNav) external {
+        if (msg.sender != navAdmin && msg.sender != owner()) revert NotNavAdmin();
+        if (newNav == 0) revert InvalidNav();
+
+        Pool storage pool = pools[chainPoolId];
+        if (!pool.active) revert PoolNotActive();
+
+        PoolNav storage nav = poolNavs[chainPoolId];
+        uint256 oldNav = nav.navPerShare;
+        if (oldNav == 0) oldNav = NAV_BASE;
+
+        // Check NAV change limit (±10%)
+        uint256 maxChange = (oldNav * MAX_NAV_CHANGE_BPS) / BPS_DENOMINATOR;
+        if (newNav > oldNav + maxChange || newNav < oldNav - maxChange) {
+            revert NavChangeTooLarge();
+        }
+
+        // Check circuit breaker
+        if (newNav < nav.minNav) revert NavBelowMinimum();
+
+        nav.navPerShare = newNav;
+        nav.lastUpdate = block.timestamp;
+
+        emit NavUpdated(chainPoolId, oldNav, newNav, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @notice Set minimum NAV for circuit breaker
+     */
+    function setMinNav(uint256 chainPoolId, uint256 minNav) external onlyOwner {
+        poolNavs[chainPoolId].minNav = minNav;
+    }
+
+    // ==================== Fee Management ====================
+
+    /**
+     * @notice Set fee treasury address
+     */
+    function setFeeTreasury(address _feeTreasury) external onlyOwner {
+        address oldTreasury = feeTreasury;
+        feeTreasury = _feeTreasury;
+        emit FeeTreasuryUpdated(oldTreasury, _feeTreasury);
+    }
+
+    /**
+     * @notice Set fee configuration for a pool
+     * @param chainPoolId Pool to configure
+     * @param entryFeeBps Entry fee in basis points
+     * @param exitFeeBps Exit fee in basis points
+     */
+    function setPoolFees(
+        uint256 chainPoolId,
+        uint256 entryFeeBps,
+        uint256 exitFeeBps
+    ) external onlyOwner {
+        Pool storage pool = pools[chainPoolId];
+        if (pool.chainPoolId == 0 && !pool.active) revert PoolNotFound();
+
+        poolFees[chainPoolId] = FeeConfig({
+            entryFeeBps: entryFeeBps,
+            exitFeeBps: exitFeeBps
+        });
+
+        emit FeeConfigUpdated(chainPoolId, entryFeeBps, exitFeeBps);
+    }
+
+    // ==================== NAV & Fee View Functions ====================
+
+    /**
+     * @notice Get pool NAV data
+     */
+    function getPoolNav(uint256 chainPoolId) external view returns (
+        uint256 navPerShare,
+        uint256 lastUpdate,
+        uint256 minNav
+    ) {
+        PoolNav storage nav = poolNavs[chainPoolId];
+        return (
+            nav.navPerShare == 0 ? NAV_BASE : nav.navPerShare,
+            nav.lastUpdate,
+            nav.minNav
+        );
+    }
+
+    /**
+     * @notice Get pool fee configuration
+     */
+    function getPoolFees(uint256 chainPoolId) external view returns (
+        uint256 entryFeeBps,
+        uint256 exitFeeBps
+    ) {
+        FeeConfig storage fees = poolFees[chainPoolId];
+        return (fees.entryFeeBps, fees.exitFeeBps);
+    }
+
+    /**
+     * @notice Calculate current position value based on NAV
+     */
+    function getPositionValue(uint256 chainPoolId, address user) external view returns (
+        uint256 shares,
+        uint256 currentValue,
+        uint256 depositedAmount
+    ) {
+        Position storage pos = positions[chainPoolId][user];
+        uint256 currentNav = poolNavs[chainPoolId].navPerShare;
+        if (currentNav == 0) currentNav = NAV_BASE;
+
+        uint256 value = (pos.shares * currentNav) / NAV_BASE;
+        return (pos.shares, value, pos.depositedAmount);
     }
 }

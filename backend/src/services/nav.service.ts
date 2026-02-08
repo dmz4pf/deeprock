@@ -11,6 +11,17 @@ import { PrismaClient, PoolStatus } from "@prisma/client";
 const NAV_DECIMALS = 8;
 const NAV_BASE = BigInt(10 ** NAV_DECIMALS); // 100000000
 
+// Minimum hours between NAV updates (configurable for demo, default 1 hour)
+const MIN_UPDATE_INTERVAL_HOURS = parseFloat(
+  process.env.NAV_MIN_UPDATE_INTERVAL_HOURS || "1"
+);
+
+// Demo multiplier to accelerate growth for visible changes (default 1 = realistic)
+// Set to 1000 to simulate ~1000x faster growth (1 year in ~8.7 hours)
+const DEMO_GROWTH_MULTIPLIER = BigInt(
+  process.env.NAV_DEMO_GROWTH_MULTIPLIER || "1"
+);
+
 export interface NavUpdateResult {
   poolId: string;
   poolName: string;
@@ -79,15 +90,18 @@ export class NavService {
 
     const hoursElapsed = this.getHoursElapsed(pool.lastNavUpdate);
 
-    // Only update if at least 1 hour has passed
-    if (hoursElapsed < 1) {
+    // Only update if minimum interval has passed
+    if (hoursElapsed < MIN_UPDATE_INTERVAL_HOURS) {
       return null;
     }
 
-    // Calculate growth for elapsed time
-    // dailyGrowth = APY / 365 / 24 * hoursElapsed
+    // Calculate growth for elapsed time with fractional hour support
+    // Growth = NAV * APY * hoursElapsed / 10000 / 365 / 24 * DEMO_MULTIPLIER
+    // Scale hoursElapsed by 10000 for precision, then divide at end
+    const HOURS_PRECISION = 10000n;
+    const scaledHours = BigInt(Math.round(hoursElapsed * 10000));
     const hourlyRate = (BigInt(pool.yieldRateBps) * NAV_BASE) / 10000n / 365n / 24n;
-    const totalGrowth = hourlyRate * BigInt(Math.floor(hoursElapsed));
+    const totalGrowth = (hourlyRate * scaledHours * DEMO_GROWTH_MULTIPLIER) / HOURS_PRECISION;
 
     // New NAV = current NAV + (current NAV * growth rate / NAV_BASE)
     const previousNav = pool.navPerShare;

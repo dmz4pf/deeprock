@@ -331,7 +331,7 @@ router.post(
         return;
       }
 
-      const { userOp, hash: originalHash, walletAddress } = JSON.parse(pendingData);
+      const { userOp, hash: originalHash, walletAddress, poolId, amount } = JSON.parse(pendingData);
       console.log("[UserOp] Retrieved pending request:", requestId);
       console.log("[UserOp] Original hash from build:", originalHash);
 
@@ -506,18 +506,69 @@ router.post(
       // Clean up pending request to prevent replay attacks
       await redis.del(`userop:pending:${requestId}`);
 
-      // If successful, create pending investment record
+      // If successful, create investment record in database
       if (result.status !== "failed") {
         console.log(`[UserOp] Investment submitted: ${result.userOpHash}`);
+
+        // Create Investment record
+        const amountBigInt = BigInt(amount);
+        const NAV_BASE = BigInt(100_000_000); // 8 decimals
+
+        // Get pool for NAV calculation
+        const poolForNav = await prisma.assetPool.findUnique({
+          where: { id: poolId },
+          select: { navPerShare: true, chainPoolId: true }
+        });
+
+        if (poolForNav) {
+          // Calculate shares: amount * NAV_BASE / navPerShare
+          const shares = (amountBigInt * NAV_BASE) / poolForNav.navPerShare;
+
+          await prisma.investment.create({
+            data: {
+              userId,
+              poolId,
+              type: "INVEST",
+              amount: amountBigInt,
+              shares,
+              sharePriceAtPurchase: poolForNav.navPerShare,
+              status: result.status === "success" ? "CONFIRMED" : "PENDING",
+              txHash: result.txHash || null,
+            },
+          });
+
+          // Update pool investor count if confirmed
+          if (result.status === "success") {
+            // Check if this is user's first investment in this pool
+            const existingInvestments = await prisma.investment.count({
+              where: {
+                userId,
+                poolId,
+                type: "INVEST",
+                status: "CONFIRMED",
+              },
+            });
+
+            if (existingInvestments === 1) { // This is the only one
+              await prisma.assetPool.update({
+                where: { id: poolId },
+                data: { investorCount: { increment: 1 } },
+              });
+            }
+          }
+
+          console.log(`[UserOp] Investment record created for pool ${poolForNav.chainPoolId}`);
+        }
       }
 
       res.json({
-        success: true,
+        success: result.status === "success",
         result: {
           userOpHash: result.userOpHash,
           txHash: result.txHash,
           blockNumber: result.blockNumber,
           status: result.status,
+          revertReason: result.revertReason,
         },
         explorer: result.txHash
           ? `https://testnet.snowtrace.io/tx/${result.txHash}`
@@ -526,7 +577,9 @@ router.post(
           ? "Investment confirmed on-chain!"
           : result.status === "pending"
           ? "UserOperation submitted. Awaiting confirmation."
-          : "UserOperation failed. Please try again.",
+          : result.revertReason
+          ? `Transaction reverted: ${result.revertReason}`
+          : "Transaction reverted on-chain. Please check your USDC balance and allowance.",
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {

@@ -100,7 +100,8 @@ export class RelayerService {
     }
 
     this.chainId = config?.chainId || parseInt(process.env.CHAIN_ID || "43113"); // Fuji testnet
-    this.provider = new JsonRpcProvider(rpcUrl, this.chainId);
+    // Don't pass chainId to JsonRpcProvider - let it auto-detect to avoid timeout issues
+    this.provider = new JsonRpcProvider(rpcUrl);
     this.wallet = new Wallet(privateKey, this.provider);
     this.biometricRegistry = new Contract(
       registryAddress,

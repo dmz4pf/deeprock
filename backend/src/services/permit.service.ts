@@ -22,6 +22,11 @@ export interface PermitSignature {
 
 /**
  * EIP-712 typed data for permit signing
+ *
+ * IMPORTANT: The types object MUST include EIP712Domain for MetaMask's
+ * eth_signTypedData_v4 to correctly encode the domain separator.
+ * Without it, MetaMask may use inconsistent encoding, causing signature
+ * verification to fail even when the same account signs.
  */
 export interface PermitTypedData {
   domain: {
@@ -31,6 +36,7 @@ export interface PermitTypedData {
     verifyingContract: string;
   };
   types: {
+    EIP712Domain: Array<{ name: string; type: string }>;
     Permit: Array<{ name: string; type: string }>;
   };
   primaryType: "Permit";
@@ -39,7 +45,7 @@ export interface PermitTypedData {
     spender: string;
     value: string;
     nonce: string;
-    deadline: number;
+    deadline: string; // uint256 should be string for consistent EIP-712 encoding
   };
 }
 
@@ -64,7 +70,8 @@ export class PermitService {
   constructor(tokenAddress: string, rpcUrl: string, chainId: number) {
     this.tokenAddress = tokenAddress;
     this.chainId = chainId;
-    this.provider = new JsonRpcProvider(rpcUrl, chainId);
+    // Don't pass chainId to JsonRpcProvider - let it auto-detect to avoid timeout issues
+    this.provider = new JsonRpcProvider(rpcUrl);
     this.tokenContract = new Contract(tokenAddress, PERMIT_ABI, this.provider);
   }
 
@@ -132,6 +139,15 @@ export class PermitService {
         verifyingContract: this.tokenAddress,
       },
       types: {
+        // EIP712Domain MUST be included for MetaMask's eth_signTypedData_v4
+        // Without it, MetaMask uses inconsistent domain encoding, causing
+        // signature verification to fail with different recovered addresses
+        EIP712Domain: [
+          { name: "name", type: "string" },
+          { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" },
+          { name: "verifyingContract", type: "address" },
+        ],
         Permit: [
           { name: "owner", type: "address" },
           { name: "spender", type: "address" },
@@ -146,7 +162,7 @@ export class PermitService {
         spender,
         value: value.toString(),
         nonce: nonce.toString(),
-        deadline: permitDeadline,
+        deadline: permitDeadline.toString(), // uint256 must be string for EIP-712
       },
     };
 
@@ -180,14 +196,25 @@ export class PermitService {
     expectedSigner: string
   ): boolean {
     try {
+      // ethers.verifyTypedData auto-generates EIP712Domain from the domain object,
+      // so we must EXCLUDE EIP712Domain from the types to avoid double-encoding.
+      // MetaMask NEEDS EIP712Domain in types for signing, but ethers doesn't for verification.
+      const { EIP712Domain, ...typesWithoutDomain } = typedData.types;
+
       const recoveredAddress = ethers.verifyTypedData(
         typedData.domain,
-        typedData.types,
+        typesWithoutDomain,
         typedData.message,
         signature
       );
+      console.log("[Permit Debug] Signature verification:", {
+        recoveredAddress,
+        expectedSigner,
+        match: recoveredAddress.toLowerCase() === expectedSigner.toLowerCase(),
+      });
       return recoveredAddress.toLowerCase() === expectedSigner.toLowerCase();
-    } catch {
+    } catch (err) {
+      console.log("[Permit Debug] Signature verification error:", err);
       return false;
     }
   }

@@ -55,7 +55,8 @@ export class MonitoringService {
     this.LOW_BALANCE_THRESHOLD = config.lowBalanceThreshold || ethers.parseEther("0.5");
     this.PAYMASTER_LOW_THRESHOLD = config.paymasterLowThreshold || ethers.parseEther("0.1");
 
-    this.provider = new JsonRpcProvider(config.rpcUrl, this.chainId);
+    // Don't pass chainId to JsonRpcProvider - let it auto-detect to avoid timeout issues
+    this.provider = new JsonRpcProvider(config.rpcUrl);
     this.entryPoint = new Contract(ENTRYPOINT_ADDRESS, ENTRYPOINT_ABI, this.provider);
   }
 

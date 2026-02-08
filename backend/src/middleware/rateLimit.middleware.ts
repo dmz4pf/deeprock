@@ -138,7 +138,7 @@ export const standardApiLimiter = createRateLimiter({
  */
 export const authLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
-  max: 5,
+  max: process.env.NODE_ENV === "development" ? 100 : 5,
   keyPrefix: "rl:auth",
   message: "Too many authentication attempts. Please wait before trying again.",
 });
@@ -148,7 +148,7 @@ export const authLimiter = createRateLimiter({
  */
 export const registrationLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
+  max: process.env.NODE_ENV === "development" ? 100 : 3,
   keyPrefix: "rl:register",
   message: "Too many registration attempts. Please try again later.",
 });

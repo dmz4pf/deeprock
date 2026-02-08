@@ -169,9 +169,12 @@ describe('EIP-2612 Permit Flow E2E', () => {
       );
 
       // Sign with test wallet (simulating MetaMask)
+      // NOTE: ethers.js signTypedData does NOT want EIP712Domain in types (it auto-generates it),
+      // but MetaMask's eth_signTypedData_v4 REQUIRES it. So we strip it here for the test.
+      const { EIP712Domain, ...typesWithoutDomain } = typedData.types;
       const signature = await testWallet.signTypedData(
         typedData.domain,
-        typedData.types,
+        typesWithoutDomain,
         typedData.message
       );
 
@@ -204,9 +207,11 @@ describe('EIP-2612 Permit Flow E2E', () => {
         amount
       );
 
+      // Strip EIP712Domain for ethers.js signTypedData (it auto-generates it)
+      const { EIP712Domain, ...typesWithoutDomain } = typedData.types;
       const signature = await testWallet.signTypedData(
         typedData.domain,
-        typedData.types,
+        typesWithoutDomain,
         typedData.message
       );
 
@@ -294,9 +299,11 @@ describe('EIP-2612 Permit Flow E2E', () => {
       );
 
       // Step 4: Sign permit (simulating MetaMask)
+      // Strip EIP712Domain for ethers.js signTypedData (it auto-generates it)
+      const { EIP712Domain, ...typesWithoutDomain } = typedData.types;
       const signature = await testWallet.signTypedData(
         typedData.domain,
-        typedData.types,
+        typesWithoutDomain,
         typedData.message
       );
 

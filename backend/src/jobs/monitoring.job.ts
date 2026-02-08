@@ -1,6 +1,6 @@
-import { MonitoringService } from "../services/monitoring.service";
-import { AlertService } from "../services/alert.service";
-import { MetricsService } from "../services/metrics.service";
+import { MonitoringService } from "../services/monitoring.service.js";
+import { AlertService } from "../services/alert.service.js";
+import { MetricsService } from "../services/metrics.service.js";
 
 export interface MonitoringJobConfig {
   intervalMs?: number;

@@ -59,7 +59,7 @@ export function createNavJob(
           );
         }
       } else {
-        console.log("[NAV Job] No pools needed update (less than 1 hour since last update)");
+        console.log("[NAV Job] No pools needed update (less than minimum interval since last update)");
       }
     } catch (error: any) {
       console.error("[NAV Job] Update failed:", error.message);

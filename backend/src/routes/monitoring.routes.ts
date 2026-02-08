@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { MonitoringService, HealthCheck } from "../services/monitoring.service";
-import { MetricsService } from "../services/metrics.service";
+import { MonitoringService, HealthCheck } from "../services/monitoring.service.js";
+import { MetricsService } from "../services/metrics.service.js";
 
 const router = Router();
 

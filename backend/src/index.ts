@@ -10,6 +10,7 @@ import poolsRoutes from './routes/pools.routes.js';
 import portfolioRoutes from './routes/portfolio.routes.js';
 import indexerRoutes from './routes/indexer.routes.js';
 import useropRoutes from './routes/userop.routes.js';
+import swapRoutes from './routes/swap.routes.js';
 import monitoringRoutes, { initMonitoringRoutes } from './routes/monitoring.routes.js';
 import { startIndexer, stopIndexer } from './jobs/indexer.job.js';
 import { csrfProtection } from './middleware/csrf.middleware.js';
@@ -18,6 +19,8 @@ import { AlertService } from './services/alert.service.js';
 import { MetricsService } from './services/metrics.service.js';
 import { createMonitoringJob, MonitoringJob } from './jobs/monitoring.job.js';
 import { createNavJob, NavJob } from './jobs/nav.job.js';
+import { createFeeJob, FeeJob } from './jobs/fee.job.js';
+import { createSettlementJob, SettlementJob } from './jobs/settlement.job.js';
 
 // Initialize logger
 const logger = pino.default({
@@ -42,6 +45,10 @@ const PORT = process.env.PORT || 3001;
 let monitoringJob: MonitoringJob | null = null;
 // NAV simulation job reference
 let navJob: NavJob | null = null;
+// Fee accrual job reference
+let feeJob: FeeJob | null = null;
+// Settlement job reference
+let settlementJob: SettlementJob | null = null;
 
 // Middleware
 app.use(helmet());
@@ -88,6 +95,7 @@ app.get('/api', (req, res) => {
       portfolio: '/api/portfolio/*',
       indexer: '/api/indexer/*',
       userop: '/api/userop/*',
+      swap: '/api/swap/*',
       monitoring: '/api/monitoring/*',
     },
   });
@@ -100,6 +108,7 @@ app.use('/api/pools', poolsRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/indexer', indexerRoutes);
 app.use('/api/userop', useropRoutes);
+app.use('/api/swap', swapRoutes);
 app.use('/api/monitoring', monitoringRoutes);
 
 // Graceful shutdown
@@ -110,6 +119,12 @@ async function shutdown() {
   }
   if (navJob) {
     navJob.stop();
+  }
+  if (feeJob) {
+    feeJob.stop();
+  }
+  if (settlementJob) {
+    settlementJob.stop();
   }
   await stopIndexer();
   await prisma.$disconnect();
@@ -189,6 +204,20 @@ async function main() {
       navJob = createNavJob(prisma);
       navJob.start();
       logger.info('NAV simulation job started');
+    }
+
+    // Start fee accrual job
+    if (process.env.ENABLE_FEE_ACCRUAL !== 'false') {
+      feeJob = createFeeJob(prisma);
+      feeJob.start();
+      logger.info('Fee accrual job started');
+    }
+
+    // Start settlement job for redemption queue processing
+    if (process.env.ENABLE_SETTLEMENT_JOB !== 'false') {
+      settlementJob = createSettlementJob(prisma);
+      settlementJob.start();
+      logger.info('Settlement job started');
     }
   } catch (error) {
     logger.error(error, 'Failed to start server');
