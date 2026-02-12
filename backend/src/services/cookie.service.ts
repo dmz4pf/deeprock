@@ -15,7 +15,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const AUTH_COOKIE_OPTIONS = {
   httpOnly: true, // Prevents JavaScript access (XSS protection)
   secure: IS_PRODUCTION, // HTTPS only in production
-  sameSite: "lax" as const, // "lax" allows cookies on top-level navigations (OAuth redirects)
+  sameSite: (IS_PRODUCTION ? "none" : "lax") as "none" | "lax", // "none" required for cross-origin cookies (Vercel→Railway)
   maxAge: 24 * 60 * 60 * 1000, // 24 hours (matches JWT expiration)
   path: "/api", // Limit scope to API routes
 };
@@ -24,7 +24,7 @@ const AUTH_COOKIE_OPTIONS = {
 const CSRF_COOKIE_OPTIONS = {
   httpOnly: false, // Must be readable by JavaScript
   secure: IS_PRODUCTION,
-  sameSite: "lax" as const, // "lax" allows cookies on top-level navigations (OAuth redirects)
+  sameSite: (IS_PRODUCTION ? "none" : "lax") as "none" | "lax", // "none" required for cross-origin cookies
   maxAge: 24 * 60 * 60 * 1000,
   path: "/",
 };
