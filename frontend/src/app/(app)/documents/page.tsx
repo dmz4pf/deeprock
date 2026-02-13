@@ -167,13 +167,15 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
           Check document authenticity
         </div>
       </div>
-      <div className="flex flex-col gap-3 text-center" style={{ marginTop: "auto" }}>
+      <div className="flex-1 flex flex-col justify-center">
         <QGInput
           label="Document Hash"
           placeholder="Enter hash to verify..."
           value={hash}
           onChange={(e) => setHash(e.target.value)}
         />
+      </div>
+      <div className="flex flex-col gap-3" style={{ marginTop: "auto" }}>
         <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
           {isVerifying ? "Verifying..." : "Verify"}
         </QGButton>
