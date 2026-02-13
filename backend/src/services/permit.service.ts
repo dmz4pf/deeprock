@@ -97,7 +97,7 @@ export class PermitService {
     if (!this.tokenName) {
       this.tokenName = await this.tokenContract.name();
     }
-    return this.tokenName;
+    return this.tokenName!;
   }
 
   /**
