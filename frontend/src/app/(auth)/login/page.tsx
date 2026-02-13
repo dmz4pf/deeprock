@@ -112,7 +112,9 @@ function LoginPageInner() {
             displayName: result.user!.email?.split("@")[0] || null,
             authProvider: "EMAIL",
           },
-          result.csrfToken!
+          result.csrfToken!,
+          false, // not a new user
+          true   // has biometrics — they just authenticated with a passkey
         );
         router.push("/portfolio");
       }, 800);
