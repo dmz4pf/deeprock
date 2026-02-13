@@ -111,9 +111,11 @@ export const useAuthStore = create<AuthState>()(
           if (data.success && data.session) {
             const hasBiometrics = data.session.hasBiometrics ?? false;
 
-            // Only preserve biometric-prompt if it's currently set (don't redirect on regular page loads)
-            // The biometric prompt is triggered by the login flow, not by session validation
-            const newStep = currentStep === "biometric-prompt" ? "biometric-prompt" : "authenticated";
+            // Preserve biometric-prompt only if user still needs to set up biometrics.
+            // Once hasBiometrics is true (passkey registered), transition to authenticated.
+            const shouldPromptBiometric =
+              currentStep === "biometric-prompt" && !hasBiometrics;
+            const newStep = shouldPromptBiometric ? "biometric-prompt" : "authenticated";
 
             set({
               user: data.session.user,

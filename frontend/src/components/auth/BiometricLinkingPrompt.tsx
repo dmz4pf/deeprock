@@ -13,6 +13,7 @@ import { Fingerprint, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { authApi } from "@/lib/api";
+import { useAuthStore } from "@/stores/authStore";
 
 interface BiometricLinkingPromptProps {
   onComplete: () => void;
@@ -24,6 +25,7 @@ export function BiometricLinkingPrompt({
   onSkip,
 }: BiometricLinkingPromptProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { setHasBiometrics, setAuthStep } = useAuthStore();
 
   const handleSetupBiometric = async () => {
     setIsLoading(true);
@@ -37,6 +39,10 @@ export function BiometricLinkingPrompt({
 
       await authApi.registerVerify(optionsResult.challengeId, attestation);
 
+      // Update auth store: passkey is now registered
+      setHasBiometrics(true);
+      setAuthStep("authenticated");
+
       toast.success("Biometric authentication enabled!");
       onComplete();
     } catch (error: unknown) {
@@ -48,6 +54,8 @@ export function BiometricLinkingPrompt({
         toast.error("Biometric setup was cancelled");
       } else if (webAuthnError.name === "InvalidStateError") {
         toast.error("This device is already registered");
+        setHasBiometrics(true);
+        setAuthStep("authenticated");
         onComplete();
       } else {
         toast.error(webAuthnError.message || "Failed to set up biometric authentication");

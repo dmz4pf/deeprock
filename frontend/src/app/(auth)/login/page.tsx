@@ -198,8 +198,14 @@ function LoginPageInner() {
     router.push("/portfolio");
   };
 
-  const handleBiometricComplete = () => router.push("/portfolio");
-  const handleBiometricSkip = () => router.push("/portfolio");
+  const handleBiometricComplete = () => {
+    setAuthStep("authenticated");
+    router.push("/portfolio");
+  };
+  const handleBiometricSkip = () => {
+    setAuthStep("authenticated");
+    router.push("/portfolio");
+  };
 
   /* ─── Sub-flow renders ─── */
   switch (localStep) {
