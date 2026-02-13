@@ -1203,10 +1203,50 @@ input[type=number] { -moz-appearance: textfield; }
 .qg-reveal {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .qg-reveal.qg-revealed {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Directional reveal variants */
+.qg-reveal-left {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.qg-reveal-left.qg-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.qg-reveal-right {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.qg-reveal-right.qg-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.qg-reveal-scale {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.qg-reveal-scale.qg-revealed {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Page entrance animation (mount-triggered, not scroll) */
+@keyframes pageEnterUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter-up {
+  animation: pageEnterUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 

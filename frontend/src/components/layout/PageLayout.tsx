@@ -23,8 +23,8 @@ export function PageLayout({ children, title, subtitle, actions, maxWidth = "def
 
   return (
     <div className={`${MAX_WIDTH_CLASSES[maxWidth]} mx-auto px-4 sm:px-6 w-full`}>
-      {/* Page header */}
-      <header className="flex justify-between items-center pt-6 pb-6 border-b border-[var(--border-subtle)] mb-6 gap-4">
+      {/* Page header — entrance animated */}
+      <header className="page-enter-up flex justify-between items-center pt-6 pb-6 border-b border-[var(--border-subtle)] mb-6 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {/* Mobile hamburger */}
           <button

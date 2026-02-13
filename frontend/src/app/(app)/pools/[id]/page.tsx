@@ -470,14 +470,14 @@ function PoolDetailContent({ pool }: { pool: Pool }) {
             </QGScrollReveal>
 
             {/* Yield Chart */}
-            <QGScrollReveal staggerIndex={2}>
+            <QGScrollReveal staggerIndex={2} direction="left">
               <QGPanel label="Yield History (30D)">
                 <QGChart data={yieldHistory} height={200} gradientId={`yield-${pool.id}`} />
               </QGPanel>
             </QGScrollReveal>
 
             {/* Pool Info */}
-            <QGScrollReveal staggerIndex={3}>
+            <QGScrollReveal staggerIndex={3} direction="right">
               <QGPanel label="Pool Information">
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
                   {[
@@ -498,7 +498,7 @@ function PoolDetailContent({ pool }: { pool: Pool }) {
             </QGScrollReveal>
 
             {/* Capacity */}
-            <QGScrollReveal staggerIndex={4}>
+            <QGScrollReveal staggerIndex={4} direction="left">
               <QGPanel label="Pool Capacity">
                 <QGProgressBar label="Utilization" value={capacityPct} color="#E8B4B8" height={6} />
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>

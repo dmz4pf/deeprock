@@ -329,7 +329,7 @@ export default function DocumentsPage() {
   return (
     <PageLayout title="Document Vault" subtitle="Cryptographic proof of authenticity" maxWidth="narrow">
       {/* -- Side-by-side Action Cards -- */}
-      <QGScrollReveal>
+      <QGScrollReveal direction="scale">
         <div className="grid-2col">
           <VerifyCard onResult={handleResult} />
           <SealCard />

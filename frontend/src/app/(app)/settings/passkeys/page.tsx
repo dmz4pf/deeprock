@@ -104,17 +104,17 @@ export default function PasskeysPage() {
     <>
       <div className="container py-6 space-y-6 max-w-3xl">
         {/* Back link */}
-        <QGScrollReveal>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-2 text-forge-text-3 hover:text-forge-text-1 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Settings
-        </Link>
-        </QGScrollReveal>
+        <div className="page-enter-up">
+          <Link
+            href="/settings"
+            className="inline-flex items-center gap-2 text-forge-text-3 hover:text-forge-text-1 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Settings
+          </Link>
+        </div>
 
-        <QGScrollReveal staggerIndex={1}>
+        <QGScrollReveal staggerIndex={1} direction="scale">
         <Card className="border-forge-copper/10">
           <CardHeader>
             <div className="flex items-center justify-between">
