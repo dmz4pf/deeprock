@@ -157,7 +157,7 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
   };
 
   return (
-    <QGPanel hover>
+    <QGPanel hover className="h-full">
       <div className="text-center mb-4">
         <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
         <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
@@ -167,22 +167,20 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
           Check document authenticity
         </div>
       </div>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" style={{ marginTop: "auto" }}>
         <QGInput
           label="Document Hash"
           placeholder="Enter hash to verify..."
           value={hash}
           onChange={(e) => setHash(e.target.value)}
         />
-        {/* Spacer to match Seal card's Metadata input height */}
-        <div className="invisible">
-          <QGInput label="Metadata" placeholder="" disabled />
-        </div>
         <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
           {isVerifying ? "Verifying..." : "Verify"}
         </QGButton>
+        <p className="text-[11px] text-[#5A5347] text-center font-sans m-0">
+          Enter a document hash to check its seal
+        </p>
       </div>
-      <p className="invisible text-[11px] mt-3 text-center font-sans">&nbsp;</p>
     </QGPanel>
   );
 }
