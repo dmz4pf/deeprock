@@ -72,7 +72,7 @@ export function QGPanel({
         />
       )}
       {label && <QGLabel>{label}</QGLabel>}
-      <div className="relative flex-1">{children}</div>
+      <div className="relative flex-1 flex flex-col">{children}</div>
       {isVault && <div className="rose-rule mt-4" />}
     </div>
   );
