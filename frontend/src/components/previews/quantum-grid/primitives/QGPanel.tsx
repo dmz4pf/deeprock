@@ -55,7 +55,7 @@ export function QGPanel({
   return (
     <div
       className={`
-        relative overflow-hidden
+        relative overflow-hidden flex flex-col
         transition-[border-color,box-shadow,transform] duration-[var(--duration-slow)] ease-out
         ${bgClass} ${borderClass} ${roundClass} ${padClass}
         ${hover ? "forge-hover-lift" : ""}
@@ -72,7 +72,7 @@ export function QGPanel({
         />
       )}
       {label && <QGLabel>{label}</QGLabel>}
-      <div className="relative">{children}</div>
+      <div className="relative flex-1">{children}</div>
       {isVault && <div className="rose-rule mt-4" />}
     </div>
   );
