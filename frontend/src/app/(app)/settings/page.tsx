@@ -252,7 +252,7 @@ export default function SettingsPage() {
       </QGScrollReveal>
 
       {/* ── Security | Preferences (2-column) ── */}
-      <QGScrollReveal staggerIndex={1}>
+      <QGScrollReveal staggerIndex={1} direction="scale">
         <div className="grid-2col">
           <SecurityPanel hasBiometrics={hasBiometrics} />
           <PreferencesPanel />

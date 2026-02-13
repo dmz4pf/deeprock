@@ -196,13 +196,13 @@ function PoolsContent({ pools }: { pools: Pool[] }) {
         </>
       }
     >
-      <QGScrollReveal staggerIndex={1}>
-        <div className="flex flex-col gap-5">
-          {ASSET_CLASSES.map((ac) => (
-            <CategoryOverviewCard key={ac.slug} config={ac} stats={categoryMap.get(ac.slug)} />
-          ))}
-        </div>
-      </QGScrollReveal>
+      <div className="flex flex-col gap-5">
+        {ASSET_CLASSES.map((ac, i) => (
+          <QGScrollReveal key={ac.slug} staggerIndex={i + 1} direction={i % 2 === 0 ? "left" : "right"}>
+            <CategoryOverviewCard config={ac} stats={categoryMap.get(ac.slug)} />
+          </QGScrollReveal>
+        ))}
+      </div>
     </PageLayout>
   );
 }

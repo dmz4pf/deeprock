@@ -180,15 +180,17 @@ export function QGCategoryPageLive({ slug }: { slug: string }) {
   return (
     <div className="max-w-[var(--page-max-width)] mx-auto px-4 sm:px-6 w-full py-6 flex flex-col gap-6">
       {/* Back link */}
-      <Link
-        href="/pools"
-        className="inline-flex items-center gap-2 text-sm text-[#B8A99A] hover:text-[#F0EBE0] transition-colors duration-200 group no-underline w-fit"
-      >
-        <span className="flex items-center justify-center h-7 w-7 rounded-full bg-[rgba(232,180,184,0.06)] group-hover:bg-[rgba(232,180,184,0.12)] transition-colors duration-200">
-          <ArrowLeft size={14} className="text-[#B8A99A] group-hover:text-[#E8B4B8] transition-colors" />
-        </span>
-        <span className="font-medium tracking-wide">Back to Pools</span>
-      </Link>
+      <div className="page-enter-up">
+        <Link
+          href="/pools"
+          className="inline-flex items-center gap-2 text-sm text-[#B8A99A] hover:text-[#F0EBE0] transition-colors duration-200 group no-underline w-fit"
+        >
+          <span className="flex items-center justify-center h-7 w-7 rounded-full bg-[rgba(232,180,184,0.06)] group-hover:bg-[rgba(232,180,184,0.12)] transition-colors duration-200">
+            <ArrowLeft size={14} className="text-[#B8A99A] group-hover:text-[#E8B4B8] transition-colors" />
+          </span>
+          <span className="font-medium tracking-wide">Back to Pools</span>
+        </Link>
+      </div>
 
       {/* Category header — premium */}
       <QGScrollReveal>

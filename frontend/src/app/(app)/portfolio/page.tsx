@@ -643,7 +643,7 @@ function PortfolioContent({ portfolio }: { portfolio: PortfolioData }) {
       </QGScrollReveal>
 
       {/* ── Row 2: Allocation (1/3) | Active Investments (2/3) ── */}
-      <QGScrollReveal staggerIndex={2}>
+      <QGScrollReveal staggerIndex={2} direction="left">
         <div className="grid-sidebar">
           <QGPanel label="Allocation" hover>
             <QGDonutRing
@@ -668,7 +668,7 @@ function PortfolioContent({ portfolio }: { portfolio: PortfolioData }) {
 
       {/* ── Row 3: Return Bars (1/3) | Yield Matrix (2/3) ── */}
       {holdings.length > 0 && (
-        <QGScrollReveal staggerIndex={3}>
+        <QGScrollReveal staggerIndex={3} direction="right">
           <div className="grid-sidebar">
             <ReturnBars holdings={holdings} />
             <YieldMatrix holdings={holdings} data={heatmapData} />
