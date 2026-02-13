@@ -986,6 +986,8 @@ input[type=number] { -moz-appearance: textfield; }
 
 .animate-timeline-spin {
   animation: timelineSpin 0.9s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 @keyframes morphLock {
@@ -1072,6 +1074,11 @@ input[type=number] { -moz-appearance: textfield; }
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Exempt functional loading spinners — they indicate system status, not decoration */
+  .animate-timeline-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
