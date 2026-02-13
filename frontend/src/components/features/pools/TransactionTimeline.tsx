@@ -128,17 +128,16 @@ export function TransactionTimeline({ currentStep, authType, className }: Transa
                   {/* Spinning arc for current step */}
                   {isCurrent && (
                     <svg
-                      className="absolute inset-0 h-10 w-10 animate-[timelineSpin_1.2s_linear_infinite]"
+                      className="absolute inset-0 h-10 w-10 animate-[timelineSpin_0.9s_linear_infinite]"
                       viewBox="0 0 40 40"
                     >
                       <circle
                         cx="20" cy="20" r="18"
                         fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeDasharray="40 73"
+                        stroke="#E8B4B8"
+                        strokeWidth="3"
+                        strokeDasharray="70 43"
                         strokeLinecap="round"
-                        className="text-forge-copper"
                       />
                     </svg>
                   )}
