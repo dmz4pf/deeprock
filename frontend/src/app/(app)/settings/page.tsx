@@ -29,7 +29,7 @@ function truncateAddress(address: string): string {
 function Toggle({ enabled, onToggle, label }: { enabled: boolean; onToggle: () => void; label: string }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-sm text-secondary-foreground font-sans">{label}</span>
+      <span className="text-sm text-[#B8A99A] font-sans">{label}</span>
       <button
         onClick={onToggle}
         aria-label={label}
@@ -140,7 +140,7 @@ function SecurityPanel({ hasBiometrics }: { hasBiometrics: boolean }) {
       </div>
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-secondary-foreground font-sans">Passkey / Biometrics</span>
+          <span className="text-sm text-[#B8A99A] font-sans">Passkey / Biometrics</span>
           <QGBadge color={hasBiometrics ? "#6FCF97" : "#EB5757"} variant="dot" pulse={hasBiometrics}>
             {hasBiometrics ? "Enabled" : "Not Set Up"}
           </QGBadge>
@@ -154,7 +154,7 @@ function SecurityPanel({ hasBiometrics }: { hasBiometrics: boolean }) {
 
         <div className="border-t border-[rgba(232,180,184,0.04)] pt-3.5">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-secondary-foreground font-sans">Two-Factor Auth</span>
+            <span className="text-sm text-[#B8A99A] font-sans">Two-Factor Auth</span>
             <QGBadge color="#5A5347">Not Set Up</QGBadge>
           </div>
         </div>
@@ -189,7 +189,7 @@ function PreferencesPanel() {
 
         <div className="border-t border-[rgba(232,180,184,0.04)] pt-3.5">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-secondary-foreground font-sans">Theme</span>
+            <span className="text-sm text-[#B8A99A] font-sans">Theme</span>
             <span className="text-[13px] text-accent font-medium font-sans">Fusion B</span>
           </div>
         </div>
