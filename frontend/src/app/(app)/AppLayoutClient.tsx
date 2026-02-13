@@ -48,7 +48,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex items-center justify-center p-0 lg:p-8" style={{ height: '100dvh' }}>
+    <div className="flex items-center justify-center p-0 lg:p-3" style={{ height: '100dvh' }}>
       <div className="app-shell flex w-full lg:max-w-[1600px] h-full lg:rounded-[20px] overflow-hidden bg-[var(--elevation-0)] lg:border lg:border-[rgba(232,180,184,0.06)] relative">
         <AmbientBackground />
 
