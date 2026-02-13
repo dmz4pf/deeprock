@@ -157,29 +157,32 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
   };
 
   return (
-    <QGPanel hover className="h-full">
-      <div className="flex flex-col h-full justify-between">
-        <div className="text-center mb-4">
-          <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
-          <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
-            Verify
-          </div>
-          <div className="text-xs text-[#5A5347] font-sans">
-            Check document authenticity
-          </div>
+    <QGPanel hover>
+      <div className="text-center mb-4">
+        <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
+        <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
+          Verify
         </div>
-        <div className="flex flex-col gap-3">
-          <QGInput
-            label="Document Hash"
-            placeholder="Enter hash to verify..."
-            value={hash}
-            onChange={(e) => setHash(e.target.value)}
-          />
-          <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
-            {isVerifying ? "Verifying..." : "Verify"}
-          </QGButton>
+        <div className="text-xs text-[#5A5347] font-sans">
+          Check document authenticity
         </div>
       </div>
+      <div className="flex flex-col gap-3">
+        <QGInput
+          label="Document Hash"
+          placeholder="Enter hash to verify..."
+          value={hash}
+          onChange={(e) => setHash(e.target.value)}
+        />
+        {/* Spacer to match Seal card's Metadata input height */}
+        <div className="invisible">
+          <QGInput label="Metadata" placeholder="" disabled />
+        </div>
+        <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
+          {isVerifying ? "Verifying..." : "Verify"}
+        </QGButton>
+      </div>
+      <p className="invisible text-[11px] mt-3 text-center font-sans">&nbsp;</p>
     </QGPanel>
   );
 }
