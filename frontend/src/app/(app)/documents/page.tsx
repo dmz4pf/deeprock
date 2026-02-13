@@ -157,26 +157,28 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
   };
 
   return (
-    <QGPanel hover>
-      <div className="text-center mb-4">
-        <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
-        <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
-          Verify
+    <QGPanel hover className="h-full">
+      <div className="flex flex-col h-full">
+        <div className="text-center mb-4">
+          <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
+          <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
+            Verify
+          </div>
+          <div className="text-xs text-[#5A5347] font-sans">
+            Check document authenticity
+          </div>
         </div>
-        <div className="text-xs text-[#5A5347] font-sans">
-          Check document authenticity
+        <div className="flex flex-col gap-3 mt-auto">
+          <QGInput
+            label="Document Hash"
+            placeholder="Enter hash to verify..."
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
+          />
+          <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
+            {isVerifying ? "Verifying..." : "Verify"}
+          </QGButton>
         </div>
-      </div>
-      <div className="flex flex-col gap-3">
-        <QGInput
-          label="Document Hash"
-          placeholder="Enter hash to verify..."
-          value={hash}
-          onChange={(e) => setHash(e.target.value)}
-        />
-        <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
-          {isVerifying ? "Verifying..." : "Verify"}
-        </QGButton>
       </div>
     </QGPanel>
   );
@@ -186,24 +188,26 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
 
 function SealCard() {
   return (
-    <QGPanel hover>
-      <div className="text-center mb-4">
-        <div className="text-xl text-[#E8B4B8] mb-2">{"\u25C9"}</div>
-        <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
-          Seal
+    <QGPanel hover className="h-full">
+      <div className="flex flex-col h-full">
+        <div className="text-center mb-4">
+          <div className="text-xl text-[#E8B4B8] mb-2">{"\u25C9"}</div>
+          <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
+            Seal
+          </div>
+          <div className="text-xs text-[#5A5347] font-sans">
+            Seal a new document on-chain
+          </div>
         </div>
-        <div className="text-xs text-[#5A5347] font-sans">
-          Seal a new document on-chain
+        <div className="flex flex-col gap-3 mt-auto">
+          <QGInput label="Document Hash" placeholder="0x..." disabled />
+          <QGInput label="Metadata" placeholder="Optional description..." disabled />
+          <QGButton disabled>Seal Document</QGButton>
         </div>
+        <p className="text-[11px] text-[#5A5347] mt-3 text-center font-sans">
+          Requires connected wallet with passkey
+        </p>
       </div>
-      <div className="flex flex-col gap-3">
-        <QGInput label="Document Hash" placeholder="0x..." disabled />
-        <QGInput label="Metadata" placeholder="Optional description..." disabled />
-        <QGButton disabled>Seal Document</QGButton>
-      </div>
-      <p className="text-[11px] text-[#5A5347] mt-3 text-center font-sans">
-        Requires connected wallet with passkey
-      </p>
     </QGPanel>
   );
 }
