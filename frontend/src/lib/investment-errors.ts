@@ -69,9 +69,10 @@ export const INVESTMENT_ERRORS: Record<string, InvestmentError> = {
   },
   AMOUNT_BELOW_MINIMUM: {
     code: "AMOUNT_BELOW_MINIMUM",
-    title: "Amount Too Low",
-    message: "The investment amount is below the minimum required.",
-    recoverable: false,
+    title: "Below Minimum Investment",
+    message: "Your investment amount is below this pool's minimum. Please check the minimum and try a higher amount.",
+    action: "Adjust Amount",
+    recoverable: true,
   },
   AMOUNT_ABOVE_MAXIMUM: {
     code: "AMOUNT_ABOVE_MAXIMUM",
@@ -232,6 +233,12 @@ export function parseInvestmentError(error: unknown): InvestmentError {
     }
 
     // Check for common error patterns
+    if (error.includes("below") && (error.includes("minimum") || error.includes("pool"))) {
+      return INVESTMENT_ERRORS.AMOUNT_BELOW_MINIMUM;
+    }
+    if (error.includes("exceeds") && (error.includes("maximum") || error.includes("pool"))) {
+      return INVESTMENT_ERRORS.AMOUNT_ABOVE_MAXIMUM;
+    }
     if (error.includes("expired")) {
       return INVESTMENT_ERRORS.PERMIT_EXPIRED;
     }

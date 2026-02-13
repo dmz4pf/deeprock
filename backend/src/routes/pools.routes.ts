@@ -32,6 +32,60 @@ try {
   console.error("[Pools] RelayerService init failed:", error.message);
 }
 
+/**
+ * Validate investment amount against on-chain pool data.
+ * If the on-chain minInvestment differs from DB, sync the DB.
+ * Returns null if valid, or an error response object if invalid.
+ */
+async function validateOnChainMinimum(
+  pool: { id: string; chainPoolId: number; minInvestment: bigint; maxInvestment: bigint },
+  amountBigInt: bigint
+): Promise<{ error: string; code: string; onChainMin?: string } | null> {
+  if (!relayerService?.hasRwaPool()) return null;
+
+  try {
+    const onChainPool = await relayerService.getPoolOnChain(pool.chainPoolId);
+    if (!onChainPool) return null;
+
+    const onChainMin = BigInt(onChainPool.minInvestment);
+    const onChainMax = BigInt(onChainPool.maxInvestment);
+
+    // Sync DB if on-chain values differ
+    if (onChainMin !== pool.minInvestment || onChainMax !== pool.maxInvestment) {
+      console.log(`[Pools] Syncing on-chain limits for pool ${pool.chainPoolId}: min=${onChainMin}, max=${onChainMax} (DB had min=${pool.minInvestment}, max=${pool.maxInvestment})`);
+      await prisma.assetPool.update({
+        where: { id: pool.id },
+        data: {
+          minInvestment: onChainMin,
+          maxInvestment: onChainMax,
+        },
+      });
+    }
+
+    if (amountBigInt < onChainMin) {
+      const minUSDC = Number(onChainMin) / 1_000_000;
+      return {
+        error: `Minimum investment is $${minUSDC.toLocaleString()} USDC`,
+        code: "BELOW_MINIMUM",
+        onChainMin: onChainMin.toString(),
+      };
+    }
+
+    if (amountBigInt > onChainMax) {
+      const maxUSDC = Number(onChainMax) / 1_000_000;
+      return {
+        error: `Maximum investment is $${maxUSDC.toLocaleString()} USDC`,
+        code: "ABOVE_MAXIMUM",
+        onChainMin: onChainMax.toString(),
+      };
+    }
+  } catch (err: any) {
+    console.warn("[Pools] On-chain validation failed, falling back to DB:", err.message);
+  }
+
+  return null;
+}
+
 // Asset class mapping: Backend enum → Frontend format
 const assetClassToFrontend: Record<AssetClass, string> = {
   TREASURY: "treasury",
@@ -314,6 +368,29 @@ router.get("/:id", standardApiLimiter, optionalAuth, async (req: Request, res: R
       return;
     }
 
+    // Sync on-chain limits if relayer is available (non-blocking)
+    if (relayerService?.hasRwaPool()) {
+      try {
+        const onChainPool = await relayerService.getPoolOnChain(pool.chainPoolId);
+        if (onChainPool) {
+          const onChainMin = BigInt(onChainPool.minInvestment);
+          const onChainMax = BigInt(onChainPool.maxInvestment);
+          if (onChainMin !== pool.minInvestment || onChainMax !== pool.maxInvestment) {
+            await prisma.assetPool.update({
+              where: { id: pool.id },
+              data: { minInvestment: onChainMin, maxInvestment: onChainMax },
+            });
+            pool.minInvestment = onChainMin;
+            pool.maxInvestment = onChainMax;
+            console.log(`[Pool Detail] Synced on-chain limits for pool ${pool.chainPoolId}`);
+          }
+        }
+      } catch (err: any) {
+        // Non-blocking — don't fail the response
+        console.warn(`[Pool Detail] On-chain sync failed for pool ${pool.chainPoolId}:`, err.message);
+      }
+    }
+
     // Check if user has investment in this pool
     let userInvestment = null;
     if (req.user) {
@@ -422,20 +499,33 @@ router.post(
         return;
       }
 
-      // Validate investment amount
-      if (amountBigInt < pool.minInvestment) {
+      // Validate investment amount against on-chain data (authoritative source)
+      const onChainError = await validateOnChainMinimum(pool, amountBigInt);
+      if (onChainError) {
         res.status(400).json({
           success: false,
-          error: `Minimum investment is ${pool.minInvestment.toString()}`,
+          error: onChainError.error,
+          code: onChainError.code,
+        });
+        return;
+      }
+
+      // Fallback: DB-level validation if on-chain check was skipped
+      if (amountBigInt < pool.minInvestment) {
+        const minUSDC = Number(pool.minInvestment) / 1_000_000;
+        res.status(400).json({
+          success: false,
+          error: `Minimum investment is $${minUSDC.toLocaleString()} USDC`,
           code: "BELOW_MINIMUM",
         });
         return;
       }
 
       if (amountBigInt > pool.maxInvestment) {
+        const maxUSDC = Number(pool.maxInvestment) / 1_000_000;
         res.status(400).json({
           success: false,
-          error: `Maximum investment is ${pool.maxInvestment.toString()}`,
+          error: `Maximum investment is $${maxUSDC.toLocaleString()} USDC`,
           code: "ABOVE_MAXIMUM",
         });
         return;
@@ -1028,20 +1118,33 @@ router.post(
         return;
       }
 
-      // Validate investment amount
-      if (amountBigInt < pool.minInvestment) {
+      // Validate investment amount against on-chain data
+      const onChainErr = await validateOnChainMinimum(pool, amountBigInt);
+      if (onChainErr) {
         res.status(400).json({
           success: false,
-          error: `Minimum investment is ${pool.minInvestment.toString()}`,
+          error: onChainErr.error,
+          code: onChainErr.code,
+        });
+        return;
+      }
+
+      // Fallback: DB-level validation
+      if (amountBigInt < pool.minInvestment) {
+        const minUSDC = Number(pool.minInvestment) / 1_000_000;
+        res.status(400).json({
+          success: false,
+          error: `Minimum investment is $${minUSDC.toLocaleString()} USDC`,
           code: "BELOW_MINIMUM",
         });
         return;
       }
 
       if (amountBigInt > pool.maxInvestment) {
+        const maxUSDC = Number(pool.maxInvestment) / 1_000_000;
         res.status(400).json({
           success: false,
-          error: `Maximum investment is ${pool.maxInvestment.toString()}`,
+          error: `Maximum investment is $${maxUSDC.toLocaleString()} USDC`,
           code: "ABOVE_MAXIMUM",
         });
         return;
@@ -1173,20 +1276,33 @@ router.post(
         return;
       }
 
-      // Validate investment amount
-      if (amountBigInt < pool.minInvestment) {
+      // Validate investment amount against on-chain data
+      const onChainPermitErr = await validateOnChainMinimum(pool, amountBigInt);
+      if (onChainPermitErr) {
         res.status(400).json({
           success: false,
-          error: `Minimum investment is ${pool.minInvestment.toString()}`,
+          error: onChainPermitErr.error,
+          code: onChainPermitErr.code,
+        });
+        return;
+      }
+
+      // Fallback: DB-level validation
+      if (amountBigInt < pool.minInvestment) {
+        const minUSDC = Number(pool.minInvestment) / 1_000_000;
+        res.status(400).json({
+          success: false,
+          error: `Minimum investment is $${minUSDC.toLocaleString()} USDC`,
           code: "BELOW_MINIMUM",
         });
         return;
       }
 
       if (amountBigInt > pool.maxInvestment) {
+        const maxUSDC = Number(pool.maxInvestment) / 1_000_000;
         res.status(400).json({
           success: false,
-          error: `Maximum investment is ${pool.maxInvestment.toString()}`,
+          error: `Maximum investment is $${maxUSDC.toLocaleString()} USDC`,
           code: "ABOVE_MAXIMUM",
         });
         return;

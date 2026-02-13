@@ -186,18 +186,20 @@ router.post(
 
       // Validate investment amount
       if (amountBigInt < pool.minInvestment) {
+        const minUSDC = Number(pool.minInvestment) / 1_000_000;
         res.status(400).json({
           success: false,
-          error: `Minimum investment is ${pool.minInvestment.toString()}`,
+          error: `Minimum investment is $${minUSDC.toLocaleString()} USDC`,
           code: "BELOW_MINIMUM",
         });
         return;
       }
 
       if (amountBigInt > pool.maxInvestment) {
+        const maxUSDC = Number(pool.maxInvestment) / 1_000_000;
         res.status(400).json({
           success: false,
-          error: `Maximum investment is ${pool.maxInvestment.toString()}`,
+          error: `Maximum investment is $${maxUSDC.toLocaleString()} USDC`,
           code: "ABOVE_MAXIMUM",
         });
         return;
