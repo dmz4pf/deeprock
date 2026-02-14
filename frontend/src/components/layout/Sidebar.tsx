@@ -287,9 +287,7 @@ export function Sidebar() {
       {/* Logo + brand header */}
       <div className={`flex items-center h-16 border-b border-[var(--border-subtle)] shrink-0 ${collapsed ? "justify-center px-2" : "justify-between px-4"}`}>
         <div className={`flex items-center gap-3 ${collapsed ? "gap-0" : ""}`}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[rgba(232,180,184,0.15)] to-[rgba(201,160,220,0.10)] flex items-center justify-center shrink-0 border border-[rgba(232,180,184,0.08)]">
-            <span className="text-xl font-bold text-[#E8B4B8] font-serif leading-none">D</span>
-          </div>
+          <img src="/icon-192.png" alt="Deeprock" className="w-10 h-10 rounded-xl shrink-0" />
           {!collapsed && (
             <div>
               <div className="text-[20px] font-bold text-[#F0EBE0] font-serif tracking-tight leading-tight">

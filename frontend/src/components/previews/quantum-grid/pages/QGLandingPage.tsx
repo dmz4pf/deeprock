@@ -110,14 +110,14 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
       <section className="sv-hero">
         <div className="sv-hero-watermark">DEEPROCK</div>
         <div className="sv-container" style={{ position: "relative", zIndex: 1 }}>
-          <p className="sv-hero-label page-enter-up" style={{ animationDelay: "100ms" }}>Institutional RWA Tokenization</p>
+          <p className="sv-hero-label page-enter-up" style={{ animationDelay: "100ms" }}>Institutional-Grade Digital Asset Platform</p>
           <h1 className="sv-hero-headline page-enter-up" style={{ animationDelay: "200ms" }}>
-            <span className="sv-gold">$1.66B</span> in Tokenized
-            Real&#8209;World&nbsp;Assets
+            Where <span className="sv-gold">Real&nbsp;Assets</span> Meet
+            Digital&nbsp;Infrastructure
           </h1>
           <p className="sv-hero-subtitle page-enter-up" style={{ animationDelay: "350ms" }}>
-            Institutional-grade yield. On-chain transparency. Built on
-            Avalanche.
+            Treasury bills, private credit, and real estate — tokenized with
+            institutional security on Avalanche.
           </p>
           <div className="sv-hero-ctas page-enter-up" style={{ animationDelay: "500ms" }}>
             <button className="sv-btn-primary" onClick={onLaunch}>

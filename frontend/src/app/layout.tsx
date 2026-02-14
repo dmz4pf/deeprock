@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     "WebAuthn",
     "Investment",
   ],
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
