@@ -42,9 +42,10 @@ export function SlideDrawer({
       <div
         className="slide-drawer-inner h-full flex flex-col relative"
         style={{
-          width: 420,
+          width: "min(420px, 100vw)",
           borderLeft: `2px solid rgba(${rgb}, 0.15)`,
           background: `linear-gradient(180deg, var(--elevation-1) 0%, var(--elevation-0) 100%)`,
+          boxShadow: "var(--shadow-4)",
         }}
       >
         {/* Ambient glow */}

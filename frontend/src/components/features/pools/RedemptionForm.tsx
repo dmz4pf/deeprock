@@ -9,17 +9,14 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  Loader2,
   AlertCircle,
   ExternalLink,
   ArrowLeft,
   ArrowDownRight,
   Unlock,
   Lock,
-  Send,
-  ShieldCheck,
-  CheckCircle,
 } from "lucide-react";
+import { TransactionVault } from "./TransactionVault";
 
 type Step = "amount" | "review" | "pending" | "success" | "error";
 
@@ -54,106 +51,6 @@ function formatNAV(value: string): number {
 function toSharesAmount(shares: string): string {
   const num = parseFloat(shares) || 0;
   return Math.floor(num * 1_000_000).toString();
-}
-
-// --- Redemption Timeline (simplified 2-step) ---
-
-type RedemptionPhase = "submitting" | "confirming";
-
-const REDEMPTION_STEPS: { key: RedemptionPhase; icon: React.ElementType; label: string; description: string; estimate: string }[] = [
-  { key: "submitting", icon: Send, label: "Processing", description: "Submitting to the network", estimate: "~5s" },
-  { key: "confirming", icon: ShieldCheck, label: "Confirming", description: "Blockchain confirmation", estimate: "~15s" },
-];
-
-function RedemptionTimeline({ className }: { className?: string }) {
-  return (
-    <div className={cn("space-y-2", className)}>
-      <h3 className="text-center text-lg font-semibold text-[#F0EBE0] font-serif mb-5">
-        Processing Redemption
-      </h3>
-      <div className="flex flex-col gap-0 px-4">
-        {REDEMPTION_STEPS.map((step, index) => {
-          const Icon = step.icon;
-          const isCurrent = index === 0;
-          const isFuture = index > 0;
-
-          return (
-            <div key={step.key}>
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0">
-                  <div
-                    className={cn(
-                      "flex items-center justify-center h-10 w-10 rounded-full transition-all duration-500",
-                      isCurrent && "bg-forge-rose-gold/15",
-                      isFuture && "opacity-40 bg-[rgba(232,180,184,0.05)]"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 transition-colors duration-300",
-                        isCurrent ? "text-forge-rose-gold" : "text-[#5A5347]"
-                      )}
-                    />
-                  </div>
-                  {isCurrent && (
-                    <svg
-                      className="absolute inset-0 h-10 w-10 animate-timeline-spin"
-                      viewBox="0 0 40 40"
-                    >
-                      <circle
-                        cx="20" cy="20" r="18"
-                        fill="none"
-                        stroke="#E8B4B8"
-                        strokeWidth="3"
-                        strokeDasharray="70 43"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div
-                    className={cn(
-                      "text-sm font-semibold transition-colors duration-300",
-                      isCurrent && "text-[#F0EBE0]",
-                      isFuture && "text-[#5A5347]"
-                    )}
-                  >
-                    {step.label}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-xs transition-colors duration-300",
-                      isFuture ? "text-[#3A3530]" : "text-[#B8A99A]"
-                    )}
-                  >
-                    {step.description}
-                  </div>
-                </div>
-
-                <div
-                  className={cn(
-                    "text-xs tabular-nums font-medium shrink-0",
-                    isCurrent && "text-forge-rose-gold",
-                    isFuture && "text-[#3A3530]"
-                  )}
-                >
-                  {step.estimate}
-                </div>
-              </div>
-
-              {index < REDEMPTION_STEPS.length - 1 && (
-                <div className="ml-5 flex justify-center">
-                  <div className="w-px h-3 bg-[rgba(232,180,184,0.08)]" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 // --- Main Form ---
@@ -389,10 +286,18 @@ export function RedemptionForm({ holding, onComplete, onCancel }: RedemptionForm
         </div>
       )}
 
-      {/* Step: Pending — Narrative Timeline */}
+      {/* Step: Pending — Vault Animation */}
       {step === "pending" && (
         <div className="py-6 space-y-5">
-          <RedemptionTimeline />
+          <TransactionVault
+            currentStep="submitting"
+            authType="passkey"
+            amount={`$${expectedReturn.toFixed(2)} USDC`}
+            poolName={holding.poolName}
+            txHash={txHash || undefined}
+            totalSteps={2}
+            stepMapping={["submitting", "confirming"]}
+          />
 
           <p className="text-center text-xs text-[#5A5347]">
             Your USDC will arrive in your wallet shortly

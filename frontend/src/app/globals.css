@@ -292,6 +292,12 @@ input[type=number] { -moz-appearance: textfield; }
    FUSION B — Keyframe Animations
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Subtle breathing for empty state icons */
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.03); }
+}
+
 /* Iridescent gradient cycling */
 @keyframes forgeGradientShift {
   0% { background-position: 0% 50%; }
@@ -996,6 +1002,34 @@ input[type=number] { -moz-appearance: textfield; }
   100% { transform: rotate(0deg) scale(1); }
 }
 
+/* ─── Transaction Vault Animations ─── */
+
+@keyframes orbitSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes vaultBreathe {
+  0%, 100% { transform: scale(0.97); opacity: 0.85; }
+  50% { transform: scale(1.03); opacity: 1; }
+}
+
+@keyframes ringBurst {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.8); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes amountPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes successShimmer {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.5); opacity: 0.3; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
 @keyframes sidebarItemIn {
   0% { opacity: 0; transform: translateX(-6px); }
   100% { opacity: 1; transform: translateX(0); }
@@ -1052,6 +1086,12 @@ input[type=number] { -moz-appearance: textfield; }
   opacity: 1;
   transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms,
               opacity 300ms ease 80ms;
+}
+
+@media (max-width: 480px) {
+  .slide-drawer-outer.open .slide-drawer-inner {
+    border-radius: 0;
+  }
 }
 
 /* Content — closing state */
@@ -1146,6 +1186,31 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Depth & Elevation Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Inner glow on hero cards — creates illusion of top-lit surface */
+.hero-inner-glow {
+  box-shadow: inset 0 1px 0 rgba(240,235,224,0.04);
+}
+
+/* Noise texture overlay for premium surfaces */
+.noise-overlay {
+  position: relative;
+}
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Reusable UI Utility Classes
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1159,6 +1224,10 @@ input[type=number] { -moz-appearance: textfield; }
 .card-hover:hover {
   background: var(--elevation-2) !important;
   border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-2), 0 0 20px rgba(232,180,184,0.04);
+}
+.card-hover:active {
+  transform: scale(0.99);
 }
 
 /* Table/list row hover */
@@ -1255,5 +1324,30 @@ input[type=number] { -moz-appearance: textfield; }
 }
 .page-enter-up {
   animation: pageEnterUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(232,180,184,0.04) 0%,
+    rgba(232,180,184,0.08) 50%,
+    rgba(232,180,184,0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Depth system ── */
+:root {
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-2: 0 2px 8px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-4: 0 16px 48px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.25);
 }
 

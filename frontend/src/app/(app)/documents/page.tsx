@@ -8,6 +8,7 @@ import { QGInput } from "@/components/previews/quantum-grid/primitives/QGInput";
 import { QGBadge } from "@/components/previews/quantum-grid/primitives/QGBadge";
 import { QGScrollReveal } from "@/components/previews/quantum-grid/primitives/QGScrollReveal";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface RecentDocument {
   documentHash: string;
@@ -158,30 +159,39 @@ function VerifyCard({ onResult }: { onResult: (r: DocumentVerifyResult | null, e
 
   return (
     <QGPanel hover className="h-full">
-      <div className="text-center mb-4">
-        <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
-        <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
-          Verify
+      <div className="relative">
+        {/* Background watermark seal */}
+        <div className="absolute top-0 right-0 w-[100px] h-[100px] opacity-[0.03] pointer-events-none">
+          <div className="w-full h-full rounded-full border-[1.5px] border-[#E8B4B8]" />
+          <div className="absolute inset-[8px] rounded-full border border-dashed border-[#E8B4B8]" />
+          <div className="absolute inset-0 flex items-center justify-center text-[40px] text-[#E8B4B8]">{"\u26E8"}</div>
         </div>
-        <div className="text-xs text-[#5A5347] font-sans">
-          Check document authenticity
+
+        <div className="text-center mb-4">
+          <div className="text-xl text-[#6FCF97] mb-2">{"\u2713"}</div>
+          <div className="text-base font-semibold text-[#F0EBE0] font-serif mb-1">
+            Verify
+          </div>
+          <div className="text-xs text-[#5A5347] font-sans">
+            Check document authenticity
+          </div>
         </div>
-      </div>
-      <div className="flex-1 flex flex-col justify-center">
-        <QGInput
-          label="Document Hash"
-          placeholder="Enter hash to verify..."
-          value={hash}
-          onChange={(e) => setHash(e.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-3" style={{ marginTop: "auto" }}>
-        <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
-          {isVerifying ? "Verifying..." : "Verify"}
-        </QGButton>
-        <p className="text-[11px] text-[#5A5347] text-center font-sans m-0">
-          Enter a document hash to check its seal
-        </p>
+        <div className="flex-1 flex flex-col justify-center">
+          <QGInput
+            label="Document Hash"
+            placeholder="Enter hash to verify..."
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-3" style={{ marginTop: "auto" }}>
+          <QGButton onClick={handleVerify} disabled={!hash.trim() || isVerifying}>
+            {isVerifying ? "Verifying..." : "Verify"}
+          </QGButton>
+          <p className="text-[11px] text-[#5A5347] text-center font-sans m-0">
+            Enter a document hash to check its seal
+          </p>
+        </div>
       </div>
     </QGPanel>
   );
@@ -246,14 +256,11 @@ function SealTimeline() {
 
   if (documents.length === 0) {
     return (
-      <QGPanel>
-        <div className="text-[11px] tracking-[0.14em] uppercase text-[#5A5347] mb-3.5 font-semibold font-sans">
-          Recent Seals
-        </div>
-        <p className="text-[13px] text-[#5A5347] text-center my-5 font-sans">
-          No sealed documents yet.
-        </p>
-      </QGPanel>
+      <EmptyState
+        icon="seal"
+        title="No Documents Sealed"
+        description="Seal your first document on-chain to create a tamper-proof record of authenticity."
+      />
     );
   }
 

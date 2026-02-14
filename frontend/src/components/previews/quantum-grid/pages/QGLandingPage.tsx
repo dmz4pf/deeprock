@@ -77,8 +77,8 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
   const apy = useAnimatedValue(6.4, 2000);
 
   return (
-    <div className="sv-landing">
-      {/* Nav */}
+    <>
+      {/* Nav — outside sv-landing so mask-image doesn't affect it */}
       <nav className="sv-nav page-enter-up" style={{ animationDelay: "0ms" }}>
         <div className="sv-container">
           <span className="sv-nav-brand">DeepRock</span>
@@ -105,6 +105,7 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
         </div>
       </nav>
 
+      <div className="sv-landing">
       {/* Hero */}
       <section className="sv-hero">
         <div className="sv-hero-watermark">DEEPROCK</div>
@@ -285,6 +286,7 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
           </span>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

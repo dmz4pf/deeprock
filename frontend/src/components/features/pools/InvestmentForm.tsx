@@ -21,7 +21,7 @@ import { GasSavingsDisplay } from "./GasSavingsDisplay";
 import {
   type InvestmentStep,
 } from "./InvestmentStepIndicator";
-import { TransactionTimeline } from "./TransactionTimeline";
+import { TransactionVault } from "./TransactionVault";
 import { parseInvestmentError, type InvestmentError } from "@/lib/investment-errors";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -533,22 +533,14 @@ export function InvestmentForm({ pool, onComplete, categoryColor = "232,180,184"
       {/* Step: Transaction Processing (signing + pending merged) */}
       {(step === "signing" || step === "pending") && (
         <div className="py-6 space-y-5">
-          <TransactionTimeline
+          <TransactionVault
             currentStep={investmentStep}
             authType={authType}
+            amount={`$${parseFloat(amount).toLocaleString()} USDC`}
+            poolName={pool.name}
+            txHash={txHash || undefined}
+            categoryColor={rgb}
           />
-
-          {txHash && (
-            <div
-              className="rounded-lg p-3 text-center"
-              style={{ background: `rgba(${rgb}, 0.03)`, border: `1px solid rgba(${rgb}, 0.05)` }}
-            >
-              <p style={{ fontSize: 11, color: "#5A5347", marginBottom: 4 }}>Transaction Hash</p>
-              <p style={{ fontSize: 11, fontFamily: "monospace", color: "#B8A99A", wordBreak: "break-all" }}>
-                {txHash.slice(0, 20)}...{txHash.slice(-8)}
-              </p>
-            </div>
-          )}
 
           <GasSavingsDisplay variant="compact" className="justify-center" />
         </div>

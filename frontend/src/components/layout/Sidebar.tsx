@@ -93,21 +93,26 @@ export function Sidebar() {
         `}
         style={{
           color: active ? "#F0EBE0" : "#B8A99A",
-          background: active ? "rgba(255,255,255,0.03)" : "transparent",
+          background: active ? "rgba(232,180,184,0.06)" : "transparent",
           backdropFilter: active ? "blur(12px)" : undefined,
           border: active
             ? "1px solid rgba(232,180,184,0.12)"
             : "1px solid transparent",
           fontWeight: active ? 600 : 400,
+          boxShadow: active
+            ? "inset 0 0 12px rgba(232,180,184,0.06), 0 0 16px rgba(232,180,184,0.04)"
+            : "none",
+          transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
         }}
       >
         {/* Vertical bar indicator */}
         <span
-          className="sidebar-nav-bar absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-full"
+          className="sidebar-nav-bar absolute left-0 top-[15%] bottom-[15%] w-[3px] rounded-full"
           style={{
             background: active ? "#E8B4B8" : "currentColor",
             opacity: active ? 1 : 0,
-            boxShadow: active ? "0 0 8px rgba(232,180,184,0.4)" : "none",
+            boxShadow: active ? "0 0 10px rgba(232,180,184,0.5), 0 0 4px rgba(232,180,184,0.3)" : "none",
+            transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
           }}
         />
         <Icon
@@ -136,21 +141,26 @@ export function Sidebar() {
             `}
             style={{
               color: active ? "#F0EBE0" : "#B8A99A",
-              background: active ? "rgba(255,255,255,0.03)" : "transparent",
+              background: active ? "rgba(232,180,184,0.06)" : "transparent",
               backdropFilter: active ? "blur(12px)" : undefined,
               border: active
                 ? "1px solid rgba(232,180,184,0.12)"
                 : "1px solid transparent",
               fontWeight: active ? 600 : 400,
+              boxShadow: active
+                ? "inset 0 0 12px rgba(232,180,184,0.06), 0 0 16px rgba(232,180,184,0.04)"
+                : "none",
+              transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
             }}
           >
             {/* Vertical bar indicator */}
             <span
-              className="sidebar-nav-bar absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-full"
+              className="sidebar-nav-bar absolute left-0 top-[15%] bottom-[15%] w-[3px] rounded-full"
               style={{
                 background: active ? "#E8B4B8" : "currentColor",
                 opacity: active ? 1 : 0,
-                boxShadow: active ? "0 0 8px rgba(232,180,184,0.4)" : "none",
+                boxShadow: active ? "0 0 10px rgba(232,180,184,0.5), 0 0 4px rgba(232,180,184,0.3)" : "none",
+                transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
               }}
             />
             <Icon
@@ -401,7 +411,7 @@ export function Sidebar() {
       <aside
         className={`
           lg:hidden fixed left-0 top-0 h-full z-50 w-[256px] flex flex-col
-          bg-[var(--elevation-1)] border-r border-[var(--border-subtle)]
+          bg-[rgba(21,18,26,0.85)] backdrop-blur-2xl border-r border-[var(--border-subtle)]
           transition-transform duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}

@@ -5,4 +5,4 @@ export { RedemptionForm } from "./RedemptionForm";
 export { CategoryCard } from "./CategoryCard";
 export { CategoryPageContent } from "./CategoryPageContent";
 export { LockupCountdown } from "./LockupCountdown";
-export { TransactionTimeline } from "./TransactionTimeline";
+export { TransactionVault } from "./TransactionVault";

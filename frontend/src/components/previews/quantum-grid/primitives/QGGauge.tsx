@@ -18,7 +18,9 @@ export function QGGauge({
   strokeWidth = 10,
   label = "HEALTH",
 }: QGGaugeProps) {
-  const animatedScore = useAnimatedValue(value, 2000);
+  const safeValue = isNaN(value) ? 0 : value;
+  const isEmpty = safeValue === 0;
+  const animatedScore = useAnimatedValue(safeValue, 2000);
   const cx = size / 2, cy = size / 2, r = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * r;
   const ratio = animatedScore / max;
@@ -36,25 +38,34 @@ export function QGGauge({
         </linearGradient>
         <filter id="qg-gauge-glow"><feGaussianBlur stdDeviation="3" /></filter>
       </defs>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(232,180,184,0.06)" strokeWidth={strokeWidth} />
+      {/* Background ring — pulses when empty */}
       <circle
         cx={cx} cy={cy} r={r} fill="none"
-        stroke={gaugeColor} strokeWidth={strokeWidth + 4}
-        strokeDasharray={`${circumference * ratio} ${circumference * (1 - ratio)}`}
-        strokeDashoffset={circumference * 0.25}
-        strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
-        filter="url(#qg-gauge-glow)" opacity="0.25"
+        stroke="rgba(232,180,184,0.06)" strokeWidth={strokeWidth}
+        style={isEmpty ? { animation: "vaultBreathe 2s ease-in-out infinite" } : undefined}
       />
-      <circle
-        cx={cx} cy={cy} r={r} fill="none"
-        stroke="url(#qg-gauge-grad)" strokeWidth={strokeWidth}
-        strokeDasharray={`${circumference * ratio} ${circumference * (1 - ratio)}`}
-        strokeDashoffset={circumference * 0.25}
-        strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
-        style={{ transition: "stroke-dasharray 2s ease-out" }}
-      />
-      <text x={cx} y={cy - 2} textAnchor="middle" fill="#F0EBE0" fontSize="28" fontWeight="700">
-        {Math.round(animatedScore)}
+      {!isEmpty && (
+        <>
+          <circle
+            cx={cx} cy={cy} r={r} fill="none"
+            stroke={gaugeColor} strokeWidth={strokeWidth + 4}
+            strokeDasharray={`${circumference * ratio} ${circumference * (1 - ratio)}`}
+            strokeDashoffset={circumference * 0.25}
+            strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
+            filter="url(#qg-gauge-glow)" opacity="0.25"
+          />
+          <circle
+            cx={cx} cy={cy} r={r} fill="none"
+            stroke="url(#qg-gauge-grad)" strokeWidth={strokeWidth}
+            strokeDasharray={`${circumference * ratio} ${circumference * (1 - ratio)}`}
+            strokeDashoffset={circumference * 0.25}
+            strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ transition: "stroke-dasharray 2s ease-out" }}
+          />
+        </>
+      )}
+      <text x={cx} y={cy - 2} textAnchor="middle" fill={isEmpty ? "#5A5347" : "#F0EBE0"} fontSize="28" fontWeight="700">
+        {isEmpty ? "--" : Math.round(animatedScore)}
       </text>
       <text x={cx} y={cy + 14} textAnchor="middle" fill="#5A5347" fontSize="8" letterSpacing="0.2em">
         {label}

@@ -13,6 +13,8 @@ import { QGProgressBar } from "@/components/previews/quantum-grid/primitives/QGP
 import { QGScrollReveal } from "@/components/previews/quantum-grid/primitives/QGScrollReveal";
 import { useAnimatedValue } from "@/components/previews/quantum-grid/hooks/useAnimatedValue";
 import { poolApi, portfolioApi, type Pool, type PortfolioHolding } from "@/lib/api";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTokenAmount } from "@/lib/chain";
 import { getAssetClassBySlug } from "@/config/pools.config";
 
@@ -93,12 +95,20 @@ export default function PoolDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-[var(--page-max-width)] mx-auto px-4 sm:px-6 w-full py-6" style={{ display: "flex", flexDirection: "column", gap: "var(--qg-gap)" }}>
+      <div className="max-w-[var(--page-max-width)] mx-auto px-4 sm:px-6 w-full py-6 flex flex-col gap-[var(--page-gap)]">
         <QGPanel>
-          <div style={{ height: 80, borderRadius: 8, background: "rgba(232,180,184,0.03)" }} />
+          <div className="flex flex-col gap-3">
+            <Skeleton height={24} width="50%" />
+            <Skeleton height={14} width="30%" />
+            <div className="flex gap-6 pt-3">
+              <Skeleton height={40} width={100} />
+              <Skeleton height={40} width={100} />
+              <Skeleton height={40} width={100} />
+            </div>
+          </div>
         </QGPanel>
         <QGPanel>
-          <div style={{ height: 200, borderRadius: 8, background: "rgba(232,180,184,0.03)" }} />
+          <Skeleton height={200} width="100%" />
         </QGPanel>
       </div>
     );
@@ -106,20 +116,13 @@ export default function PoolDetailPage() {
 
   if (!pool) {
     return (
-      <div className="max-w-[var(--page-max-width)] mx-auto px-4 sm:px-6 w-full py-6" style={{ textAlign: "center" }}>
-        <QGPanel>
-          <p style={{ color: "#5A5347", margin: "40px 0" }}>Pool not found.</p>
-          <button
-            onClick={() => router.push("/pools")}
-            style={{
-              padding: "8px 20px", borderRadius: 8, cursor: "pointer",
-              background: "#E8B4B8", color: "#F0EBE0", border: "none",
-              fontWeight: 600, fontSize: 13,
-            }}
-          >
-            Back to Pools
-          </button>
-        </QGPanel>
+      <div className="max-w-[var(--page-max-width)] mx-auto px-4 sm:px-6 w-full py-6">
+        <EmptyState
+          icon="search"
+          title="Pool Not Found"
+          description="This pool may have been removed or the URL is incorrect."
+          action={{ label: "Back to Pools", href: "/pools" }}
+        />
       </div>
     );
   }

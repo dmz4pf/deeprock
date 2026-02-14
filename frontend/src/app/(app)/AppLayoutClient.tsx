@@ -49,12 +49,12 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
 
   return (
     <div className="flex items-center justify-center p-0 lg:p-3" style={{ height: '100dvh' }}>
-      <div className="app-shell flex w-full lg:max-w-[1600px] h-full lg:rounded-[20px] overflow-hidden bg-[var(--elevation-0)] lg:border lg:border-[rgba(232,180,184,0.06)] relative">
+      <div className="app-shell flex w-full lg:max-w-[1600px] h-full lg:rounded-[20px] overflow-hidden bg-[rgba(14,11,16,0.82)] backdrop-blur-2xl lg:border lg:border-[rgba(232,180,184,0.06)] relative">
         <AmbientBackground />
 
         {/* Desktop sidebar — flex child, not fixed */}
         <aside
-          className="hidden lg:flex flex-shrink-0 flex-col h-full overflow-y-auto overflow-x-hidden bg-[var(--elevation-1)] border-r border-[var(--border-subtle)] transition-[width] duration-200 ease-out"
+          className="hidden lg:flex flex-shrink-0 flex-col h-full overflow-y-auto overflow-x-hidden bg-[rgba(21,18,26,0.6)] border-r border-[var(--border-subtle)] transition-[width] duration-200 ease-out"
           style={{ width: sidebarCollapsed ? 72 : 256 }}
         >
           <Sidebar />
