@@ -158,7 +158,7 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
       </section>
 
       <div className="sv-container">
-        <hr className="sv-gold-rule" />
+        <hr className="sv-gold-rule sv-gold-rule-dim" />
       </div>
 
       {/* Stats */}
@@ -264,7 +264,7 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
       </QGScrollReveal>
 
       <div className="sv-container">
-        <hr className="sv-gold-rule" />
+        <hr className="sv-gold-rule sv-gold-rule-dim" />
       </div>
 
       {/* CTA Band */}
