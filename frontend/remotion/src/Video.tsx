@@ -1,39 +1,62 @@
-import { AbsoluteFill } from "remotion";
-import { FONT_SERIF, FONT_SANS } from "./lib/fonts";
-import { COLORS } from "./lib/theme";
+import React from "react";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { fade } from "@remotion/transitions/fade";
+import { ACT_FRAMES, ACT_TRANSITION } from "./lib/timings";
+import { BrandReveal } from "./sequences/BrandReveal";
+import { Context } from "./sequences/Context";
+import { PlatformWalkthrough } from "./sequences/PlatformWalkthrough";
+import { TrustSecurity } from "./sequences/TrustSecurity";
+import { Closing } from "./sequences/Closing";
 
-export const DeepRockDemo = () => {
+export const DeepRockDemo: React.FC = () => {
+  const transition = linearTiming({ durationInFrames: ACT_TRANSITION });
+
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: COLORS.bg,
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 20,
-      }}
-    >
-      <div
-        style={{
-          color: COLORS.textPrimary,
-          fontSize: 64,
-          fontFamily: FONT_SERIF,
-          fontWeight: 700,
-        }}
-      >
-        DeepRock
-      </div>
-      <div
-        style={{
-          color: COLORS.textSecondary,
-          fontSize: 24,
-          fontFamily: FONT_SANS,
-          fontWeight: 300,
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-        }}
-      >
-        Tokenized Real-World Assets on Avalanche
-      </div>
-    </AbsoluteFill>
+    <TransitionSeries>
+      {/* Act I: Brand Reveal */}
+      <TransitionSeries.Sequence durationInFrames={ACT_FRAMES.I}>
+        <BrandReveal />
+      </TransitionSeries.Sequence>
+
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={transition}
+      />
+
+      {/* Act II: Context */}
+      <TransitionSeries.Sequence durationInFrames={ACT_FRAMES.II}>
+        <Context />
+      </TransitionSeries.Sequence>
+
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={transition}
+      />
+
+      {/* Act III: Platform Walkthrough */}
+      <TransitionSeries.Sequence durationInFrames={ACT_FRAMES.III}>
+        <PlatformWalkthrough />
+      </TransitionSeries.Sequence>
+
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={transition}
+      />
+
+      {/* Act IV: Trust & Security */}
+      <TransitionSeries.Sequence durationInFrames={ACT_FRAMES.IV}>
+        <TrustSecurity />
+      </TransitionSeries.Sequence>
+
+      <TransitionSeries.Transition
+        presentation={fade()}
+        timing={transition}
+      />
+
+      {/* Act V: Closing */}
+      <TransitionSeries.Sequence durationInFrames={ACT_FRAMES.V}>
+        <Closing />
+      </TransitionSeries.Sequence>
+    </TransitionSeries>
   );
 };
