@@ -3,7 +3,8 @@ import path from "path";
 import fs from "fs";
 
 const BASE_URL = "http://localhost:3000";
-const OUT_DIR = path.resolve(__dirname, "../public/screenshots");
+// Remotion's staticFile() resolves from frontend/public/ (the cwd when rendering)
+const OUT_DIR = path.resolve(__dirname, "../../public/screenshots");
 const VIEWPORT = { width: 1920, height: 1080 };
 const RETINA_SCALE = 2;
 
