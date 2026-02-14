@@ -6,96 +6,195 @@ import {
   interpolate,
   Easing,
 } from "remotion";
-import { AppFrame } from "../../components/AppFrame";
-import { ScreenTransition } from "../../components/ScreenTransition";
 import { FadeIn } from "../../components/FadeIn";
-import { FONT_SANS } from "../../lib/fonts";
+import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS } from "../../lib/theme";
+
+const POOLS = [
+  { name: "US Treasury 6-Month", apy: "5.2%", risk: "Low", capacity: "$24M / $50M", color: "#3B82F6" },
+  { name: "Manhattan REIT Fund", apy: "8.7%", risk: "Medium", capacity: "$12M / $30M", color: "#6366F1" },
+  { name: "SME Credit Pool", apy: "11.4%", risk: "Medium-High", capacity: "$8M / $20M", color: "#7C3AED" },
+  { name: "Gold-Backed Token", apy: "3.1%", risk: "Low", capacity: "$18M / $40M", color: "#D4AF37" },
+];
 
 export const PoolBrowsing: React.FC = () => {
   const frame = useCurrentFrame();
 
-  /* Cross-fade from pools main to treasury category */
-  const poolsMainOpacity = interpolate(frame, [180, 220], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const treasuryOpacity = interpolate(frame, [210, 250], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
-      {/* Phase 1: Pools overview (0-220) */}
-      <Sequence from={0} durationInFrames={250} premountFor={15}>
-        <AbsoluteFill style={{ opacity: poolsMainOpacity }}>
-          <ScreenTransition
-            from={{ scale: 1, x: 0, y: 0 }}
-            to={{ scale: 1.05, x: 0, y: -40 }}
-            startFrame={30}
-            duration={90}
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 48,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, rgba(99,102,241,0.06), transparent 70%)",
+        }}
+      />
+
+      {/* Section label */}
+      <Sequence from={0} durationInFrames={430} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={20} direction="none">
+          <div
+            style={{
+              fontSize: 12,
+              fontFamily: FONT_SANS,
+              fontWeight: 600,
+              color: COLORS.textDim,
+              textTransform: "uppercase",
+              letterSpacing: "0.25em",
+            }}
           >
-            <AppFrame screenshot="screenshots/pools-main.png">
-              <Sequence from={40} durationInFrames={180} layout="none" premountFor={10}>
-                <FadeIn delay={0} direction="up" duration={20}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 80,
-                      right: 60,
-                      padding: "12px 20px",
-                      borderRadius: 8,
-                      backgroundColor: "rgba(99,102,241,0.12)",
-                      border: "1px solid rgba(99,102,241,0.25)",
-                      color: COLORS.textPrimary,
-                      fontSize: 14,
-                      fontFamily: FONT_SANS,
-                      fontWeight: 500,
-                    }}
-                  >
-                    5 asset classes. 15+ pools.
-                  </div>
-                </FadeIn>
-              </Sequence>
-            </AppFrame>
-          </ScreenTransition>
-        </AbsoluteFill>
+            Pool Explorer
+          </div>
+        </FadeIn>
       </Sequence>
 
-      {/* Phase 2: Treasury category (210-450) */}
-      <Sequence from={210} durationInFrames={240} premountFor={15}>
-        <AbsoluteFill style={{ opacity: treasuryOpacity }}>
-          <ScreenTransition
-            from={{ scale: 0.95, x: 0, y: 20 }}
-            to={{ scale: 1, x: 0, y: 0 }}
-            duration={30}
+      {/* Headline */}
+      <Sequence from={10} durationInFrames={420} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={25} direction="up">
+          <div
+            style={{
+              fontSize: 44,
+              fontFamily: FONT_SERIF,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              textAlign: "center",
+            }}
           >
-            <AppFrame screenshot="screenshots/pools-treasury.png">
-              <Sequence from={40} durationInFrames={200} layout="none" premountFor={10}>
-                <FadeIn delay={0} direction="right" duration={20}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 60,
-                      left: 60,
-                      padding: "12px 20px",
-                      borderRadius: 8,
-                      backgroundColor: "rgba(232,180,184,0.12)",
-                      border: "1px solid rgba(232,180,184,0.25)",
-                      color: "#E8B4B8",
-                      fontSize: 14,
-                      fontFamily: FONT_SANS,
-                      fontWeight: 500,
-                    }}
-                  >
-                    APY, lockup terms, risk rating, remaining capacity
+            Browse Investment Pools
+          </div>
+        </FadeIn>
+      </Sequence>
+
+      {/* Pool cards */}
+      <Sequence from={50} durationInFrames={400} layout="none" premountFor={15}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 20,
+            maxWidth: 800,
+          }}
+        >
+          {POOLS.map((pool, i) => {
+            const cardDelay = i * 18;
+            const cardOpacity = interpolate(
+              frame - 50,
+              [cardDelay, cardDelay + 20],
+              [0, 1],
+              { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+            );
+            const cardScale = interpolate(
+              frame - 50,
+              [cardDelay, cardDelay + 20],
+              [0.95, 1],
+              {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+                easing: Easing.out(Easing.quad),
+              }
+            );
+
+            return (
+              <div
+                key={i}
+                style={{
+                  padding: "24px",
+                  borderRadius: 16,
+                  border: `1px solid ${pool.color}20`,
+                  backgroundColor: COLORS.surface,
+                  opacity: cardOpacity,
+                  transform: `scale(${cardScale})`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontFamily: FONT_SANS,
+                    fontWeight: 600,
+                    color: COLORS.textPrimary,
+                    marginBottom: 16,
+                  }}
+                >
+                  {pool.name}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontFamily: FONT_SANS,
+                        fontWeight: 700,
+                        color: pool.color,
+                      }}
+                    >
+                      {pool.apy}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily: FONT_SANS,
+                        color: COLORS.textDim,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      APY
+                    </div>
                   </div>
-                </FadeIn>
-              </Sequence>
-            </AppFrame>
-          </ScreenTransition>
-        </AbsoluteFill>
+                  <div style={{ textAlign: "right" }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontFamily: FONT_SANS,
+                        color: COLORS.textSecondary,
+                      }}
+                    >
+                      {pool.risk}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily: FONT_SANS,
+                        color: COLORS.textDim,
+                        marginTop: 4,
+                      }}
+                    >
+                      {pool.capacity}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Sequence>
+
+      {/* Subtitle */}
+      <Sequence from={160} durationInFrames={290} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={25} direction="up">
+          <div
+            style={{
+              fontSize: 16,
+              fontFamily: FONT_SANS,
+              color: COLORS.textSecondary,
+              textAlign: "center",
+              maxWidth: 550,
+            }}
+          >
+            APY, lockup terms, risk rating, and remaining capacity — all visible
+            before you invest.
+          </div>
+        </FadeIn>
       </Sequence>
     </AbsoluteFill>
   );

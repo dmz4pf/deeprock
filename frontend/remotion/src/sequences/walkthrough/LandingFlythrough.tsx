@@ -4,51 +4,159 @@ import {
   Sequence,
   useCurrentFrame,
   interpolate,
-  spring,
-  useVideoConfig,
   Easing,
 } from "remotion";
-import { AppFrame } from "../../components/AppFrame";
-import { ScreenTransition } from "../../components/ScreenTransition";
 import { FadeIn } from "../../components/FadeIn";
-import { FONT_SANS } from "../../lib/fonts";
-import { COLORS } from "../../lib/theme";
+import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
+import { COLORS, GRADIENTS } from "../../lib/theme";
+
+const ASSET_CLASSES = [
+  { name: "Treasury Bills", icon: "🏛", color: "#3B82F6" },
+  { name: "Real Estate", icon: "🏢", color: "#6366F1" },
+  { name: "Private Credit", icon: "📄", color: "#7C3AED" },
+  { name: "Corporate Bonds", icon: "💼", color: "#14B8A6" },
+  { name: "Commodities", icon: "⛏", color: "#D4AF37" },
+];
 
 export const LandingFlythrough: React.FC = () => {
+  const frame = useCurrentFrame();
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
-      {/* Zoom in from overview to hero */}
-      <ScreenTransition
-        from={{ scale: 0.85, x: 0, y: 0 }}
-        to={{ scale: 1, x: 0, y: 0 }}
-        duration={45}
-      >
-        <AppFrame screenshot="screenshots/landing-hero.png">
-          {/* Callout: Five asset classes */}
-          <Sequence from={60} durationInFrames={200} layout="none" premountFor={15}>
-            <FadeIn delay={0} direction="up" duration={20}>
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 48,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: GRADIENTS.glow,
+        }}
+      />
+
+      <Sequence from={0} durationInFrames={280} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={20} direction="none">
+          <div
+            style={{
+              fontSize: 12,
+              fontFamily: FONT_SANS,
+              fontWeight: 600,
+              color: COLORS.textDim,
+              textTransform: "uppercase",
+              letterSpacing: "0.25em",
+              textAlign: "center",
+            }}
+          >
+            The Platform
+          </div>
+        </FadeIn>
+      </Sequence>
+
+      <Sequence from={15} durationInFrames={270} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={25} direction="up">
+          <div
+            style={{
+              fontSize: 52,
+              fontFamily: FONT_SERIF,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              textAlign: "center",
+              lineHeight: 1.2,
+              maxWidth: 900,
+            }}
+          >
+            Five Asset Classes.{"\n"}One Platform.
+          </div>
+        </FadeIn>
+      </Sequence>
+
+      <Sequence from={60} durationInFrames={240} layout="none" premountFor={15}>
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            justifyContent: "center",
+            flexWrap: "wrap",
+            maxWidth: 1100,
+          }}
+        >
+          {ASSET_CLASSES.map((asset, i) => {
+            const cardDelay = i * 12;
+            const cardOpacity = interpolate(
+              frame - 60,
+              [cardDelay, cardDelay + 20],
+              [0, 1],
+              { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+            );
+            const cardY = interpolate(
+              frame - 60,
+              [cardDelay, cardDelay + 20],
+              [30, 0],
+              {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+                easing: Easing.out(Easing.quad),
+              }
+            );
+
+            return (
               <div
+                key={i}
                 style={{
-                  position: "absolute",
-                  bottom: 80,
-                  right: 60,
-                  padding: "14px 24px",
-                  borderRadius: 10,
-                  backgroundColor: "rgba(59,130,246,0.12)",
-                  border: "1px solid rgba(59,130,246,0.25)",
-                  color: COLORS.textPrimary,
-                  fontSize: 16,
-                  fontFamily: FONT_SANS,
-                  fontWeight: 500,
-                  backdropFilter: "blur(8px)",
+                  width: 180,
+                  padding: "28px 20px",
+                  borderRadius: 16,
+                  border: `1px solid ${asset.color}25`,
+                  backgroundColor: `${asset.color}08`,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 12,
+                  opacity: cardOpacity,
+                  transform: `translateY(${cardY}px)`,
                 }}
               >
-                Five asset classes. One platform.
+                <div style={{ fontSize: 36 }}>{asset.icon}</div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontFamily: FONT_SANS,
+                    fontWeight: 600,
+                    color: asset.color,
+                    textAlign: "center",
+                  }}
+                >
+                  {asset.name}
+                </div>
               </div>
-            </FadeIn>
-          </Sequence>
-        </AppFrame>
-      </ScreenTransition>
+            );
+          })}
+        </div>
+      </Sequence>
+
+      <Sequence from={140} durationInFrames={160} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={25} direction="up">
+          <div
+            style={{
+              fontSize: 18,
+              fontFamily: FONT_SANS,
+              color: COLORS.textSecondary,
+              textAlign: "center",
+              maxWidth: 650,
+              lineHeight: 1.6,
+            }}
+          >
+            Each pool independently audited with live capacity and fee
+            transparency.
+          </div>
+        </FadeIn>
+      </Sequence>
     </AbsoluteFill>
   );
 };

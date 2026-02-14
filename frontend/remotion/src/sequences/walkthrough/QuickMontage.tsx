@@ -6,65 +6,147 @@ import {
   interpolate,
   Easing,
 } from "remotion";
-import { AppFrame } from "../../components/AppFrame";
+import { FadeIn } from "../../components/FadeIn";
+import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS } from "../../lib/theme";
 
-const MONTAGE_SCREENS = [
-  { screenshot: "screenshots/pools-real-estate.png", duration: 50 },
-  { screenshot: "screenshots/pools-private-credit.png", duration: 50 },
-  { screenshot: "screenshots/settings.png", duration: 50 },
-  { screenshot: "screenshots/pools-commodities.png", duration: 50 },
+const FEATURES = [
+  {
+    icon: "⚡",
+    title: "Sub-Second Finality",
+    desc: "Avalanche C-Chain consensus",
+    color: COLORS.accent,
+  },
+  {
+    icon: "🔍",
+    title: "Full Transparency",
+    desc: "On-chain audit trail",
+    color: COLORS.accent2,
+  },
+  {
+    icon: "🌐",
+    title: "Global Access",
+    desc: "24/7 markets, no borders",
+    color: COLORS.teal,
+  },
+  {
+    icon: "🛡",
+    title: "Institutional Grade",
+    desc: "Compliance-ready infrastructure",
+    color: COLORS.gold,
+  },
 ];
 
 export const QuickMontage: React.FC = () => {
   const frame = useCurrentFrame();
 
-  let offset = 0;
-
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
-      {MONTAGE_SCREENS.map((screen, i) => {
-        const from = offset;
-        offset += screen.duration;
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bg,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 48,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, rgba(212,175,55,0.04), transparent 60%)",
+        }}
+      />
 
-        const fadeIn = interpolate(frame, [from, from + 8], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-        });
-        const fadeOut = interpolate(
-          frame,
-          [from + screen.duration - 8, from + screen.duration],
-          [1, 0],
-          { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-        );
-        const scale = interpolate(frame, [from, from + screen.duration], [1.02, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-          easing: Easing.out(Easing.quad),
-        });
-
-        return (
-          <Sequence
-            key={i}
-            from={from}
-            durationInFrames={screen.duration}
-            premountFor={10}
+      <Sequence from={0} durationInFrames={200} layout="none" premountFor={10}>
+        <FadeIn delay={0} duration={25} direction="up">
+          <div
+            style={{
+              fontSize: 36,
+              fontFamily: FONT_SERIF,
+              fontWeight: 700,
+              color: COLORS.textPrimary,
+              textAlign: "center",
+            }}
           >
-            <AbsoluteFill style={{ opacity: Math.min(fadeIn, fadeOut) }}>
+            Built for Performance
+          </div>
+        </FadeIn>
+      </Sequence>
+
+      <Sequence from={25} durationInFrames={185} layout="none" premountFor={15}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 24,
+            maxWidth: 700,
+          }}
+        >
+          {FEATURES.map((feat, i) => {
+            const delay = i * 15;
+            const opacity = interpolate(
+              frame - 25,
+              [delay, delay + 18],
+              [0, 1],
+              { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+            );
+            const y = interpolate(
+              frame - 25,
+              [delay, delay + 18],
+              [20, 0],
+              {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+                easing: Easing.out(Easing.quad),
+              }
+            );
+
+            return (
               <div
+                key={i}
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  transform: `scale(${scale})`,
-                  transformOrigin: "center center",
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "center",
+                  padding: "20px 24px",
+                  borderRadius: 12,
+                  border: `1px solid ${feat.color}15`,
+                  backgroundColor: COLORS.surface,
+                  opacity,
+                  transform: `translateY(${y}px)`,
                 }}
               >
-                <AppFrame screenshot={screen.screenshot} />
+                <div style={{ fontSize: 32, flexShrink: 0 }}>{feat.icon}</div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontFamily: FONT_SANS,
+                      fontWeight: 600,
+                      color: feat.color,
+                    }}
+                  >
+                    {feat.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontFamily: FONT_SANS,
+                      color: COLORS.textDim,
+                      marginTop: 4,
+                    }}
+                  >
+                    {feat.desc}
+                  </div>
+                </div>
               </div>
-            </AbsoluteFill>
-          </Sequence>
-        );
-      })}
+            );
+          })}
+        </div>
+      </Sequence>
     </AbsoluteFill>
   );
 };

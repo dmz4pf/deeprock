@@ -8,8 +8,6 @@ import {
   useVideoConfig,
   Easing,
 } from "remotion";
-import { AppFrame } from "../../components/AppFrame";
-import { ScreenTransition } from "../../components/ScreenTransition";
 import { FadeIn } from "../../components/FadeIn";
 import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS } from "../../lib/theme";
@@ -18,13 +16,12 @@ export const InvestmentFlow: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  /* Phase transitions */
-  const detailOpacity = interpolate(frame, [150, 180], [1, 0], {
+  /* Phase 1 → 2 crossfade */
+  const phase1Opacity = interpolate(frame, [160, 190], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-
-  const successOpacity = interpolate(frame, [170, 200], [0, 1], {
+  const phase2Opacity = interpolate(frame, [180, 210], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -37,58 +34,151 @@ export const InvestmentFlow: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
-      {/* Phase 1: Pool detail page (0-180) */}
-      <Sequence from={0} durationInFrames={200} premountFor={15}>
-        <AbsoluteFill style={{ opacity: detailOpacity }}>
-          <ScreenTransition
-            from={{ scale: 1, x: 0, y: 0 }}
-            to={{ scale: 1.1, x: 100, y: 0 }}
-            startFrame={40}
-            duration={80}
-          >
-            <AppFrame screenshot="screenshots/pool-detail.png">
-              {/* Highlight "Invest Now" button area */}
-              <Sequence from={60} durationInFrames={120} layout="none" premountFor={10}>
-                <FadeIn delay={0} direction="left" duration={15}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 80,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      padding: "16px 32px",
-                      borderRadius: 12,
-                      background: `linear-gradient(135deg, ${COLORS.accent}20, ${COLORS.accent2}20)`,
-                      border: `2px solid ${COLORS.accent}50`,
-                      color: COLORS.textPrimary,
-                      fontSize: 18,
-                      fontFamily: FONT_SANS,
-                      fontWeight: 700,
-                      boxShadow: `0 0 20px ${COLORS.accent}30`,
-                    }}
-                  >
-                    Invest Now →
-                  </div>
-                </FadeIn>
-              </Sequence>
-            </AppFrame>
-          </ScreenTransition>
-        </AbsoluteFill>
-      </Sequence>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, rgba(59,130,246,0.05), transparent 60%)",
+        }}
+      />
 
-      {/* Phase 2: Success state (170-360) */}
-      <Sequence from={170} durationInFrames={190} premountFor={15}>
+      {/* Phase 1: Invest flow steps */}
+      <Sequence from={0} durationInFrames={200} premountFor={10}>
         <AbsoluteFill
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 20,
-            opacity: successOpacity,
+            gap: 48,
+            opacity: phase1Opacity,
           }}
         >
-          {/* Success check */}
+          <FadeIn delay={0} duration={20} direction="none">
+            <div
+              style={{
+                fontSize: 12,
+                fontFamily: FONT_SANS,
+                fontWeight: 600,
+                color: COLORS.textDim,
+                textTransform: "uppercase",
+                letterSpacing: "0.25em",
+              }}
+            >
+              Investment Flow
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={10} duration={25} direction="up">
+            <div
+              style={{
+                fontSize: 44,
+                fontFamily: FONT_SERIF,
+                fontWeight: 700,
+                color: COLORS.textPrimary,
+                textAlign: "center",
+              }}
+            >
+              Three Steps. Instant Settlement.
+            </div>
+          </FadeIn>
+
+          {/* Steps */}
+          <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
+            {[
+              { num: "1", label: "Select Pool" },
+              { num: "2", label: "Enter Amount" },
+              { num: "3", label: "Confirm" },
+            ].map((step, i) => {
+              const stepDelay = 40 + i * 25;
+              const stepOpacity = interpolate(
+                frame,
+                [stepDelay, stepDelay + 20],
+                [0, 1],
+                { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+              );
+              const stepY = interpolate(
+                frame,
+                [stepDelay, stepDelay + 20],
+                [20, 0],
+                {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                  easing: Easing.out(Easing.quad),
+                }
+              );
+
+              return (
+                <React.Fragment key={i}>
+                  {i > 0 && (
+                    <div
+                      style={{
+                        width: 40,
+                        height: 1,
+                        backgroundColor: COLORS.border,
+                        opacity: stepOpacity,
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 12,
+                      opacity: stepOpacity,
+                      transform: `translateY(${stepY}px)`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: "50%",
+                        border: `2px solid ${COLORS.accent}40`,
+                        backgroundColor: `${COLORS.accent}10`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 22,
+                        fontFamily: FONT_SANS,
+                        fontWeight: 700,
+                        color: COLORS.accent,
+                      }}
+                    >
+                      {step.num}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontFamily: FONT_SANS,
+                        fontWeight: 500,
+                        color: COLORS.textSecondary,
+                      }}
+                    >
+                      {step.label}
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </AbsoluteFill>
+      </Sequence>
+
+      {/* Phase 2: Success state */}
+      <Sequence from={180} durationInFrames={180} premountFor={15}>
+        <AbsoluteFill
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 24,
+            opacity: phase2Opacity,
+          }}
+        >
           <div
             style={{
               width: 100,
@@ -110,7 +200,7 @@ export const InvestmentFlow: React.FC = () => {
           <FadeIn delay={40} duration={20}>
             <div
               style={{
-                fontSize: 28,
+                fontSize: 32,
                 fontFamily: FONT_SERIF,
                 fontWeight: 700,
                 color: COLORS.green,
@@ -123,7 +213,7 @@ export const InvestmentFlow: React.FC = () => {
           <FadeIn delay={55} duration={20}>
             <div
               style={{
-                fontSize: 16,
+                fontSize: 18,
                 fontFamily: FONT_SANS,
                 color: COLORS.textSecondary,
                 textAlign: "center",
