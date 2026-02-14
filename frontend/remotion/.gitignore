@@ -1,0 +1,5 @@
+out/
+dist/
+public/screenshots/*.png
+public/audio/*.mp3
+node_modules/
