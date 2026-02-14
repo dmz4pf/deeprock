@@ -43,7 +43,6 @@ function SealEmblem() {
       <div className="absolute inset-0 flex items-center justify-center text-2xl text-[#E8B4B8] opacity-60">
         {"\u26E8"}
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -38,6 +38,61 @@
   mask-image: linear-gradient(to bottom, transparent 0px, transparent 65px, black 115px);
 }
 
+/* Hero gradient — gentle drift of existing colors */
+@property --gx1 { syntax: "<percentage>"; initial-value: 15%; inherits: false; }
+@property --gy1 { syntax: "<percentage>"; initial-value: -10%; inherits: false; }
+@property --gx2 { syntax: "<percentage>"; initial-value: 85%; inherits: false; }
+@property --gy2 { syntax: "<percentage>"; initial-value: 5%; inherits: false; }
+@property --gx3 { syntax: "<percentage>"; initial-value: 50%; inherits: false; }
+@property --gy3 { syntax: "<percentage>"; initial-value: 115%; inherits: false; }
+@property --gx4 { syntax: "<percentage>"; initial-value: 95%; inherits: false; }
+@property --gy4 { syntax: "<percentage>"; initial-value: 55%; inherits: false; }
+@property --gx5 { syntax: "<percentage>"; initial-value: 40%; inherits: false; }
+@property --gy5 { syntax: "<percentage>"; initial-value: 50%; inherits: false; }
+
+.sv-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 90% at var(--gx1) var(--gy1), rgba(201, 160, 220, 0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 110% 80% at var(--gx2) var(--gy2), rgba(232, 180, 184, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse 120% 70% at var(--gx3) var(--gy3), rgba(124, 58, 237, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 90% at var(--gx4) var(--gy4), rgba(201, 160, 220, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at var(--gx5) var(--gy5), rgba(232, 180, 184, 0.12) 0%, transparent 45%);
+  animation: heroGradientDrift 20s ease-in-out infinite;
+}
+
+@keyframes heroGradientDrift {
+  0%, 100% {
+    --gx1: 15%; --gy1: -10%;
+    --gx2: 85%; --gy2: 5%;
+    --gx3: 50%; --gy3: 115%;
+    --gx4: 95%; --gy4: 55%;
+    --gx5: 40%; --gy5: 50%;
+  }
+  33% {
+    --gx1: 50%; --gy1: 15%;
+    --gx2: 55%; --gy2: 35%;
+    --gx3: 30%; --gy3: 85%;
+    --gx4: 65%; --gy4: 30%;
+    --gx5: 60%; --gy5: 70%;
+  }
+  66% {
+    --gx1: 25%; --gy1: 25%;
+    --gx2: 75%; --gy2: 40%;
+    --gx3: 65%; --gy3: 90%;
+    --gx4: 45%; --gy4: 45%;
+    --gx5: 25%; --gy5: 35%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-hero::before { animation: none; }
+}
+
 .sv-landing::-webkit-scrollbar { width: 4px; }
 .sv-landing::-webkit-scrollbar-track { background: transparent; }
 .sv-landing::-webkit-scrollbar-thumb { background: rgba(196, 162, 101, 0.2); border-radius: 2px; }
@@ -87,12 +142,22 @@
 }
 
 .sv-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   font-size: 22px;
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--sv-gold);
   cursor: pointer;
+}
+
+.sv-nav-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .sv-nav-links {
@@ -147,22 +212,36 @@
   justify-content: center;
   padding-top: 100px;
   position: relative;
-  overflow: hidden;
 }
 
 .sv-hero-watermark {
-  position: absolute;
+  --sv-parallax-y: 0px;
+  position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-50% + var(--sv-parallax-y)));
   font-family: var(--font-serif), serif;
   font-weight: 900;
   font-size: clamp(120px, 20vw, 320px);
-  color: rgba(240, 235, 224, 0.025);
+  color: rgba(240, 235, 224, 0.04);
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
   letter-spacing: -0.02em;
+  z-index: 2;
+  animation: watermarkBreathe 8s ease-in-out infinite;
+}
+
+/* #3: Breathing — subtle opacity pulse, #2: Parallax via --sv-parallax-y */
+@keyframes watermarkBreathe {
+  0%, 100% { opacity: 1; transform: translate(-50%, calc(-50% + var(--sv-parallax-y))); }
+  50% { opacity: 0.5; transform: translate(-50%, calc(-50% + var(--sv-parallax-y))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-hero-watermark {
+    animation: none;
+  }
 }
 
 .sv-hero-label {
@@ -411,7 +490,6 @@
 
 .sv-trust-item:first-child {
   border-left-color: var(--sv-gold);
-  padding-left: 0;
 }
 
 .sv-trust-icon {
@@ -595,5 +673,35 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 20px;
+  }
+}
+
+/* ── Entrance reveal animation ── */
+@keyframes svRevealUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sv-reveal-up {
+  animation: svRevealUp 1.2s ease both;
+  animation-delay: 0.3s;
+}
+
+.sv-reveal-d0 { animation-delay: 0.3s; }
+.sv-reveal-d1 { animation-delay: 0.6s; }
+.sv-reveal-d2 { animation-delay: 0.9s; }
+.sv-reveal-d3 { animation-delay: 1.3s; }
+.sv-reveal-d4 { animation-delay: 1.7s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-reveal-up {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }

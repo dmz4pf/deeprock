@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import "@/styles/sovereign-landing.css";
 import { QGScrollReveal } from "../primitives/QGScrollReveal";
 import { useAnimatedValue } from "../hooks/useAnimatedValue";
@@ -76,12 +76,39 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
   const investors = useAnimatedValue(1247, 2500);
   const apy = useAnimatedValue(6.4, 2000);
 
+  const watermarkRef = useRef<HTMLDivElement>(null);
+  const landingRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = landingRef.current;
+    const watermark = watermarkRef.current;
+    if (!container || !watermark) return;
+
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const scrollY = container.scrollTop;
+        // Move watermark at 15% of scroll speed — subtle depth
+        watermark.style.setProperty("--sv-parallax-y", `${scrollY * -0.15}px`);
+        ticking = false;
+      });
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
       {/* Nav — outside sv-landing so mask-image doesn't affect it */}
-      <nav className="sv-nav page-enter-up" style={{ animationDelay: "0ms" }}>
+      <nav className="sv-nav sv-reveal-up sv-reveal-d0">
         <div className="sv-container">
-          <span className="sv-nav-brand">DeepRock</span>
+          <span className="sv-nav-brand">
+            <img src="/icon-192.png" alt="" className="sv-nav-logo" />
+            DeepRock
+          </span>
           <ul className="sv-nav-links">
             <li>
               <button className="sv-nav-link" onClick={onLaunch}>
@@ -105,21 +132,21 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
         </div>
       </nav>
 
-      <div className="sv-landing">
+      <div className="sv-landing" ref={landingRef}>
+      <div className="sv-hero-watermark" ref={watermarkRef}>DEEPROCK</div>
       {/* Hero */}
       <section className="sv-hero">
-        <div className="sv-hero-watermark">DEEPROCK</div>
         <div className="sv-container" style={{ position: "relative", zIndex: 1 }}>
-          <p className="sv-hero-label page-enter-up" style={{ animationDelay: "100ms" }}>Institutional-Grade Digital Asset Platform</p>
-          <h1 className="sv-hero-headline page-enter-up" style={{ animationDelay: "200ms" }}>
+          <p className="sv-hero-label sv-reveal-up sv-reveal-d1">Institutional-Grade Digital Asset Platform</p>
+          <h1 className="sv-hero-headline sv-reveal-up sv-reveal-d2">
             Where <span className="sv-gold">Real&nbsp;Assets</span> Meet
             Digital&nbsp;Infrastructure
           </h1>
-          <p className="sv-hero-subtitle page-enter-up" style={{ animationDelay: "350ms" }}>
+          <p className="sv-hero-subtitle sv-reveal-up sv-reveal-d3">
             Treasury bills, private credit, and real estate, tokenized with
             institutional security on Avalanche.
           </p>
-          <div className="sv-hero-ctas page-enter-up" style={{ animationDelay: "500ms" }}>
+          <div className="sv-hero-ctas sv-reveal-up sv-reveal-d4">
             <button className="sv-btn-primary" onClick={onLaunch}>
               Launch App
             </button>

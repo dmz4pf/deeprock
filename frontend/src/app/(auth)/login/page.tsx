@@ -247,22 +247,18 @@ function LoginPageInner() {
       {/* ─── Logo & Branding ─── */}
       <QGPageEntrance staggerIndex={0}>
       <div style={{ textAlign: "center", marginBottom: 40 }}>
-        {/* Forge emblem */}
-        <div
+        {/* App icon */}
+        <img
+          src="/icon-192.png"
+          alt="DeepRock"
           style={{
-            width: 56,
-            height: 56,
+            width: 48,
+            height: 48,
             margin: "0 auto 20px",
-            borderRadius: 14,
-            background: "linear-gradient(135deg, rgba(232,180,184,0.15), rgba(201,160,220,0.1))",
-            border: "1px solid rgba(232,180,184,0.2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            borderRadius: 12,
+            objectFit: "cover",
           }}
-        >
-          <Shield size={28} style={{ color: "#E8B4B8" }} />
-        </div>
+        />
         <h1
           style={{
             fontFamily: "var(--font-serif), 'Playfair Display', serif",
