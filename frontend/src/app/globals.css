@@ -1114,19 +1114,8 @@ input[type=number] { -moz-appearance: textfield; }
   transition: opacity 250ms ease-out 200ms, transform 250ms ease-out 200ms;
 }
 
-/* ─── Reduced Motion ─── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  /* Exempt functional loading spinners — they indicate system status, not decoration */
-  .animate-timeline-spin {
-    animation-duration: 1.5s !important;
-    animation-iteration-count: infinite !important;
-  }
-}
+/* Reduced-motion preference intentionally not overridden —
+   all animations play regardless of OS accessibility setting. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FUSION B — New Luxe / Vault Classes
