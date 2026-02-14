@@ -18,6 +18,8 @@ import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { Droplets, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
 
@@ -95,6 +97,7 @@ function generateHeatmap(holdings: PortfolioHolding[]): number[][] {
 }
 
 function computeHealthScore(holdings: PortfolioHolding[]): number {
+  if (holdings.length === 0) return 0;
   const uniqueClasses = new Set(holdings.map((h) => h.assetClass)).size;
   const diversificationScore = Math.min(uniqueClasses / 5, 1) * 40;
   const holdingCountScore = Math.min(holdings.length / 6, 1) * 30;
@@ -157,14 +160,32 @@ function PortfolioSkeleton() {
   return (
     <div className="forge-fade-in flex flex-col gap-5">
       <QGPanel variant="hero" accent>
-        <div className="h-[100px] rounded-lg bg-[rgba(232,180,184,0.02)]" />
+        <div className="flex flex-col gap-3 py-3">
+          <Skeleton height={14} width="30%" />
+          <Skeleton height={36} width="50%" />
+          <Skeleton height={14} width="40%" />
+        </div>
       </QGPanel>
       <div className="grid-sidebar">
         <QGPanel>
-          <div className="h-[200px] rounded-lg bg-[rgba(232,180,184,0.02)]" />
+          <div className="flex flex-col items-center gap-4 py-6">
+            <Skeleton width={160} height={160} rounded="full" />
+            <Skeleton height={14} width="60%" />
+          </div>
         </QGPanel>
         <QGPanel>
-          <div className="h-[200px] rounded-lg bg-[rgba(232,180,184,0.02)]" />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton width={40} height={40} rounded="lg" />
+                <div className="flex-1 flex flex-col gap-2">
+                  <Skeleton height={14} width="60%" />
+                  <Skeleton height={10} width="40%" />
+                </div>
+                <Skeleton height={14} width={60} />
+              </div>
+            ))}
+          </div>
         </QGPanel>
       </div>
     </div>
@@ -177,17 +198,12 @@ function EmptyPortfolio() {
   return (
     <div className="forge-fade-in flex flex-col gap-5">
       <QGScrollReveal>
-        <QGPanel accent className="text-center px-8 py-14">
-          <div className="text-[28px] font-semibold text-[#F0EBE0] mb-2.5 font-serif">
-            No Investments Yet
-          </div>
-          <p className="text-sm text-[#B8A99A] mb-7 font-sans">
-            Start building your portfolio by investing in tokenized real-world assets.
-          </p>
-          <Link href="/pools" className="no-underline">
-            <QGButton>Explore Pools</QGButton>
-          </Link>
-        </QGPanel>
+        <EmptyState
+          icon="vault"
+          title="No Investments Yet"
+          description="Start building your portfolio by investing in tokenized real-world assets."
+          action={{ label: "Explore Pools", href: "/pools" }}
+        />
       </QGScrollReveal>
     </div>
   );
@@ -270,156 +286,206 @@ function ExpandableHoldingsTable({ holdings }: { holdings: PortfolioHolding[] })
     setExpandedId((prev) => (prev === poolId ? null : poolId));
   }, []);
 
+  const reversedHoldings = useMemo(() => [...holdings].reverse(), [holdings]);
+
   return (
     <QGPanel label="Active Investments">
       <div className="flex flex-col">
-        {/* Header */}
-        <div
-          className="grid gap-2 px-2 pb-2.5 border-b border-[var(--border-subtle)]"
-          style={{ gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1fr 40px" }}
-        >
-          {["Pool", "Value", "APY", "Lock", "Status", ""].map((h) => (
-            <div
-              key={h}
-              className="text-[10px] font-semibold text-[#5A5347] tracking-[0.12em] uppercase font-sans"
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-
-        {/* Scrollable rows — newest first */}
-        <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
-        {[...holdings].reverse().map((h) => {
-          const val = holdingValue(h);
-          const apy = parseFloat(h.yieldRatePercent || "0");
-          const gain = parseFloat(h.gainPercent);
-          const color = ASSET_CLASS_COLORS[h.assetClass] ?? "#6B7280";
-          const isExpanded = expandedId === h.poolId;
-          const sparkData = sparklines.get(h.poolId) ?? [];
-
-          return (
-            <div key={h.poolId}>
-              {/* Main row */}
+        {/* Desktop: Table grid (lg+) */}
+        <div className="hidden lg:block">
+          {/* Header */}
+          <div
+            className="grid gap-2 px-2 pb-2.5 border-b border-[var(--border-subtle)]"
+            style={{ gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1fr 40px" }}
+          >
+            {["Pool", "Value", "APY", "Lock", "Status", ""].map((h) => (
               <div
-                onClick={() => toggleExpand(h.poolId)}
-                className="row-hover grid gap-2 py-3 px-2 items-center rounded-md cursor-pointer"
-                style={{
-                  gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1fr 40px",
-                  borderBottom: isExpanded ? "none" : "1px solid rgba(232,180,184,0.04)",
-                }}
+                key={h}
+                className="text-[10px] font-semibold text-[#5A5347] tracking-[0.12em] uppercase font-sans"
               >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: color, boxShadow: `0 0 6px ${color}44` }}
-                  />
-                  <div>
-                    <div className="text-[13px] font-semibold text-[#F0EBE0]">{h.poolName}</div>
-                    <div className="text-[11px] text-[#5A5347] mt-px">{getAssetClassLabel(h.assetClass)}</div>
-                  </div>
-                </div>
-                <div className="text-[13px] font-semibold text-[#F0EBE0] tabular-nums">
-                  {formatValue(val)}
-                </div>
-                <div className="text-[13px] text-[#6FCF97] tabular-nums font-medium">
-                  {apy > 0 ? `${apy.toFixed(1)}%` : "-"}
-                </div>
-                <div>
-                  {h.lockupPeriod > 0 ? (
-                    <div className="text-xs text-[#F0EBE0] tabular-nums">{h.lockupPeriod}d</div>
-                  ) : (
-                    <div className="text-xs text-[#5A5347]">Flex</div>
-                  )}
-                </div>
-                <div>
-                  {h.isLocked ? (
-                    <QGBadge color="#F59E0B">{h.daysRemaining}d left</QGBadge>
-                  ) : (
-                    <QGBadge color="#6FCF97">Unlocked</QGBadge>
-                  )}
-                </div>
-                <div
-                  className="flex items-center justify-center text-sm text-[#5A5347] transition-transform duration-300"
-                  style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
-                >
-                  {"\u25BE"}
-                </div>
+                {h}
               </div>
+            ))}
+          </div>
 
-              {/* Expanded detail drawer */}
-              <div
-                className="overflow-hidden transition-all duration-300"
-                style={{
-                  maxHeight: isExpanded ? 160 : 0,
-                  opacity: isExpanded ? 1 : 0,
-                }}
-              >
+          {/* Scrollable rows — newest first */}
+          <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+          {reversedHoldings.map((h) => {
+            const val = holdingValue(h);
+            const apy = parseFloat(h.yieldRatePercent || "0");
+            const gain = parseFloat(h.gainPercent);
+            const color = ASSET_CLASS_COLORS[h.assetClass] ?? "#6B7280";
+            const isExpanded = expandedId === h.poolId;
+            const sparkData = sparklines.get(h.poolId) ?? [];
+
+            return (
+              <div key={h.poolId}>
+                {/* Main row */}
                 <div
-                  className="grid gap-5 py-3.5 px-4 mx-1 mb-2 rounded-[10px] items-center"
+                  onClick={() => toggleExpand(h.poolId)}
+                  className="row-hover grid gap-2 py-3 px-2 items-center rounded-md cursor-pointer"
                   style={{
-                    gridTemplateColumns: "1fr 1fr 1fr auto",
-                    background: `linear-gradient(135deg, ${color}06, transparent)`,
-                    border: `1px solid ${color}10`,
+                    gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1fr 40px",
+                    borderBottom: isExpanded ? "none" : "1px solid rgba(232,180,184,0.04)",
                   }}
                 >
-                  {/* Sparkline chart */}
-                  <div>
-                    <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">
-                      14-Day Trend
-                    </div>
-                    <QGSparkline data={sparkData} color={color} width={120} height={36} />
-                  </div>
-
-                  {/* Gain info */}
-                  <div>
-                    <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">
-                      Unrealized P&L
-                    </div>
+                  <div className="flex items-center gap-2.5">
                     <div
-                      className="text-base font-bold tabular-nums"
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: color, boxShadow: `0 0 6px ${color}44` }}
+                    />
+                    <div>
+                      <div className="text-[13px] font-semibold text-[#F0EBE0]">{h.poolName}</div>
+                      <div className="text-[11px] text-[#5A5347] mt-px">{getAssetClassLabel(h.assetClass)}</div>
+                    </div>
+                  </div>
+                  <div className="text-[13px] font-semibold text-[#F0EBE0] tabular-nums">
+                    {formatValue(val)}
+                  </div>
+                  <div className="text-[13px] text-[#6FCF97] tabular-nums font-medium">
+                    {apy > 0 ? `${apy.toFixed(1)}%` : "-"}
+                  </div>
+                  <div>
+                    {h.lockupPeriod > 0 ? (
+                      <div className="text-xs text-[#F0EBE0] tabular-nums">{h.lockupPeriod}d</div>
+                    ) : (
+                      <div className="text-xs text-[#5A5347]">Flex</div>
+                    )}
+                  </div>
+                  <div>
+                    {h.isLocked ? (
+                      <QGBadge color="#F59E0B">{h.daysRemaining}d left</QGBadge>
+                    ) : (
+                      <QGBadge color="#6FCF97">Unlocked</QGBadge>
+                    )}
+                  </div>
+                  <div
+                    className="flex items-center justify-center text-sm text-[#5A5347] transition-transform duration-300"
+                    style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                  >
+                    {"\u25BE"}
+                  </div>
+                </div>
+
+                {/* Expanded detail drawer */}
+                <div
+                  className="overflow-hidden transition-all duration-300"
+                  style={{
+                    maxHeight: isExpanded ? 160 : 0,
+                    opacity: isExpanded ? 1 : 0,
+                  }}
+                >
+                  <div
+                    className="grid gap-5 py-3.5 px-4 mx-1 mb-2 rounded-[10px] items-center"
+                    style={{
+                      gridTemplateColumns: "1fr 1fr 1fr auto",
+                      background: `linear-gradient(135deg, ${color}06, transparent)`,
+                      border: `1px solid ${color}10`,
+                    }}
+                  >
+                    <div>
+                      <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">14-Day Trend</div>
+                      <QGSparkline data={sparkData} color={color} width={120} height={36} />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">Unrealized P&L</div>
+                      <div className="text-base font-bold tabular-nums" style={{ color: gain >= 0 ? "#6FCF97" : "#EB5757" }}>
+                        {gain >= 0 ? "+" : ""}{gain.toFixed(2)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">
+                        {h.isLocked ? "Unlock In" : "Lock Status"}
+                      </div>
+                      <div className="text-base font-semibold font-sans" style={{ color: h.isLocked ? "#F59E0B" : "#6FCF97" }}>
+                        {h.isLocked ? `${h.daysRemaining} days` : "Available"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); router.push(`/pools/${h.poolId}?action=redeem`); }}
+                      disabled={h.isLocked}
+                      className={`rounded-lg py-2 px-5 text-xs font-semibold font-sans tracking-wide whitespace-nowrap transition-all duration-200 ${
+                        h.isLocked
+                          ? "bg-[rgba(232,180,184,0.03)] border border-[rgba(232,180,184,0.06)] text-[#5A5347] cursor-not-allowed"
+                          : "bg-[rgba(232,180,184,0.12)] border border-[rgba(232,180,184,0.25)] text-[#E8B4B8] cursor-pointer"
+                      }`}
+                    >
+                      {h.isLocked ? "Locked" : "Redeem"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          </div>
+        </div>
+
+        {/* Mobile: Card layout (< lg) */}
+        <div className="lg:hidden flex flex-col gap-3">
+          {reversedHoldings.map((h) => {
+            const val = holdingValue(h);
+            const apy = parseFloat(h.yieldRatePercent || "0");
+            const gain = parseFloat(h.gainPercent);
+            const color = ASSET_CLASS_COLORS[h.assetClass] ?? "#6B7280";
+
+            return (
+              <div
+                key={h.poolId}
+                onClick={() => router.push(`/pools/${h.poolId}`)}
+                className="rounded-xl px-4 py-4 cursor-pointer"
+                style={{
+                  background: `linear-gradient(135deg, ${color}08, transparent)`,
+                  border: `1px solid ${color}15`,
+                }}
+              >
+                {/* Top: Name + Value */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1"
+                      style={{ background: color, boxShadow: `0 0 8px ${color}44` }}
+                    />
+                    <div>
+                      <div className="text-[14px] font-semibold text-[#F0EBE0]">{h.poolName}</div>
+                      <div className="text-[12px] text-[#5A5347] mt-0.5">{getAssetClassLabel(h.assetClass)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[16px] font-bold text-[#F0EBE0] tabular-nums">{formatValue(val)}</div>
+                    <div
+                      className="text-[12px] font-semibold tabular-nums mt-0.5"
                       style={{ color: gain >= 0 ? "#6FCF97" : "#EB5757" }}
                     >
                       {gain >= 0 ? "+" : ""}{gain.toFixed(2)}%
                     </div>
                   </div>
+                </div>
 
-                  {/* Lock countdown */}
-                  <div>
-                    <div className="text-[10px] text-[#5A5347] uppercase tracking-[0.1em] mb-1.5">
-                      {h.isLocked ? "Unlock In" : "Lock Status"}
-                    </div>
-                    <div
-                      className="text-base font-semibold font-sans"
-                      style={{ color: h.isLocked ? "#F59E0B" : "#6FCF97" }}
-                    >
-                      {h.isLocked ? `${h.daysRemaining} days` : "Available"}
+                {/* Bottom: APY | Lock | Status */}
+                <div className="flex items-center gap-3 pt-2.5" style={{ borderTop: `1px solid ${color}10` }}>
+                  <div className="flex-1">
+                    <div className="text-[9px] text-[#5A5347] uppercase tracking-widest">APY</div>
+                    <div className="text-[13px] text-[#6FCF97] font-semibold tabular-nums">
+                      {apy > 0 ? `${apy.toFixed(1)}%` : "-"}
                     </div>
                   </div>
-
-                  {/* Action button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/pools/${h.poolId}?action=redeem`);
-                    }}
-                    disabled={h.isLocked}
-                    className={`
-                      rounded-lg py-2 px-5 text-xs font-semibold font-sans tracking-wide whitespace-nowrap
-                      transition-all duration-200
-                      ${h.isLocked
-                        ? "bg-[rgba(232,180,184,0.03)] border border-[rgba(232,180,184,0.06)] text-[#5A5347] cursor-not-allowed"
-                        : "bg-[rgba(232,180,184,0.12)] border border-[rgba(232,180,184,0.25)] text-[#E8B4B8] cursor-pointer"
-                      }
-                    `}
-                  >
-                    {h.isLocked ? "Locked" : "Redeem"}
-                  </button>
+                  <div className="flex-1">
+                    <div className="text-[9px] text-[#5A5347] uppercase tracking-widest">Lock</div>
+                    <div className="text-[13px] text-[#F0EBE0] tabular-nums">
+                      {h.lockupPeriod > 0 ? `${h.lockupPeriod}d` : "Flex"}
+                    </div>
+                  </div>
+                  <div>
+                    {h.isLocked ? (
+                      <QGBadge color="#F59E0B">{h.daysRemaining}d left</QGBadge>
+                    ) : (
+                      <QGBadge color="#6FCF97">Unlocked</QGBadge>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
     </QGPanel>
@@ -543,7 +609,7 @@ function PortfolioContent({ portfolio }: { portfolio: PortfolioData }) {
     >
       {/* ── Row 1: Hero with embedded Health Ring ── */}
       <QGScrollReveal>
-        <div className="fb-luxe-card fb-shine fb-iri relative overflow-hidden rounded-2xl px-8 py-10">
+        <div className="fb-luxe-card fb-shine fb-iri noise-overlay hero-inner-glow relative overflow-hidden rounded-2xl px-8 py-10">
           {/* Watermark ghost */}
           <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"

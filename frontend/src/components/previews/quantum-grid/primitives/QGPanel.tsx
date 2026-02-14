@@ -52,6 +52,12 @@ export function QGPanel({
 
   const luxeClass = isLuxe ? "fb-luxe-card fb-shine fb-iri" : "";
 
+  const shadowStyle = isVault || isLuxe
+    ? undefined
+    : isHero
+      ? "var(--shadow-3)"
+      : "var(--shadow-1)";
+
   return (
     <div
       className={`
@@ -60,10 +66,11 @@ export function QGPanel({
         ${bgClass} ${borderClass} ${roundClass} ${padClass}
         ${hover ? "forge-hover-lift" : ""}
         ${accent ? "forge-edge" : ""}
+        ${isHero ? "hero-inner-glow" : ""}
         ${luxeClass}
         ${className}
       `}
-      style={style}
+      style={{ boxShadow: shadowStyle, ...style }}
     >
       {!isVault && (
         <div

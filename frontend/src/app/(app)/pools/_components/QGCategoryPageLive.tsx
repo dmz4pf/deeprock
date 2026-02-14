@@ -10,6 +10,8 @@ import { QGBadge } from "@/components/previews/quantum-grid/primitives/QGBadge";
 import { QGProgressBar } from "@/components/previews/quantum-grid/primitives/QGProgressBar";
 import { QGInput } from "@/components/previews/quantum-grid/primitives/QGInput";
 import { QGScrollReveal } from "@/components/previews/quantum-grid/primitives/QGScrollReveal";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const RISK_COLORS: Record<string, string> = {
   low: "#6FCF97",
@@ -54,10 +56,10 @@ function PoolCardSkeleton({ rgb }: { rgb: string }) {
       }}
     >
       <div className="flex flex-col gap-3">
-        <div className="h-[18px] w-[60%] rounded-md" style={{ background: `rgba(${rgb}, 0.05)` }} />
-        <div className="h-[14px] w-[40%] rounded-md" style={{ background: `rgba(${rgb}, 0.03)` }} />
-        <div className="h-[14px] w-[80%] rounded-md" style={{ background: `rgba(${rgb}, 0.03)` }} />
-        <div className="h-[6px] w-full rounded-sm" style={{ background: `rgba(${rgb}, 0.03)` }} />
+        <Skeleton height={18} width="60%" />
+        <Skeleton height={14} width="40%" />
+        <Skeleton height={14} width="80%" />
+        <Skeleton height={6} width="100%" rounded="sm" />
       </div>
     </div>
   );
@@ -259,17 +261,11 @@ export function QGCategoryPageLive({ slug }: { slug: string }) {
           {[0, 1, 2].map(i => <PoolCardSkeleton key={i} rgb={rgb} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div
-          className="rounded-[14px] px-8 py-10 text-center"
-          style={{
-            background: `linear-gradient(180deg, var(--elevation-1) 0%, var(--elevation-0) 100%)`,
-            border: `1px solid rgba(${rgb}, 0.08)`,
-          }}
-        >
-          <p className="text-[14px] text-[#5A5347] m-0">
-            {search ? "No pools match your search." : "No pools available in this category."}
-          </p>
-        </div>
+        <EmptyState
+          icon="search"
+          title={search ? "No Results" : "No Pools Available"}
+          description={search ? `No pools matching "${search}" in this category.` : "No pools are currently available in this category."}
+        />
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
           {filtered.map((pool, i) => (

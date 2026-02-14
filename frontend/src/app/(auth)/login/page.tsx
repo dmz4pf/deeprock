@@ -304,7 +304,7 @@ function LoginPageInner() {
             ? "linear-gradient(135deg, #EB5757, #8B3A30)"
             : passkeyState === "success"
               ? "linear-gradient(135deg, #D4A853, #CD7F32)"
-              : "linear-gradient(135deg, #E8B4B8 0%, #C9A0DC 40%, #D4A853 70%, #CD7F32 100%)",
+              : "linear-gradient(135deg, rgba(232,180,184,0.6) 0%, rgba(201,160,220,0.5) 40%, rgba(212,168,83,0.55) 70%, rgba(205,127,50,0.6) 100%)",
           backgroundSize: "300% 100%",
           animationName: passkeyState === "idle" ? "forgeGradientShift" : "none",
           animationDuration: "8s",
@@ -448,30 +448,44 @@ function LoginPageInner() {
         style={{
           display: "flex",
           justifyContent: "center",
-          gap: 20,
-          marginTop: 24,
-          paddingTop: 20,
+          gap: 24,
+          marginTop: 28,
+          paddingTop: 22,
           borderTop: "1px solid rgba(232,180,184,0.06)",
         }}
       >
         {[
-          { icon: Shield, text: "Bank-grade security" },
-          { icon: Zap, text: "Gasless transactions" },
-          { icon: Fingerprint, text: "Biometric auth" },
+          { icon: Shield, text: "Bank-grade", sub: "security" },
+          { icon: Zap, text: "Zero gas", sub: "fees" },
+          { icon: Fingerprint, text: "Biometric", sub: "auth" },
         ].map((badge) => (
           <div
             key={badge.text}
             style={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              gap: 5,
-              fontSize: 10,
-              color: "#5A5347",
-              letterSpacing: "0.02em",
+              gap: 6,
             }}
           >
-            <badge.icon size={12} style={{ color: "#E8B4B8", opacity: 0.6 }} />
-            {badge.text}
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "rgba(232,180,184,0.06)",
+                border: "1px solid rgba(232,180,184,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <badge.icon size={16} style={{ color: "#E8B4B8", opacity: 0.7 }} />
+            </div>
+            <div style={{ textAlign: "center", lineHeight: 1.3 }}>
+              <div style={{ fontSize: 11, color: "#B8A99A", fontWeight: 500 }}>{badge.text}</div>
+              <div style={{ fontSize: 10, color: "#5A5347" }}>{badge.sub}</div>
+            </div>
           </div>
         ))}
       </div>

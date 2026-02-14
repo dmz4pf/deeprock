@@ -40,7 +40,7 @@ export function QGButton({
         ${SIZE_CLASSES[size]}
         ${VARIANT_CLASSES[variant]}
         ${fullWidth ? "w-full" : ""}
-        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:-translate-y-0.5"}
+        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97]"}
       `}
     >
       {children}

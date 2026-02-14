@@ -7,6 +7,7 @@ import { QGPanel } from "@/components/previews/quantum-grid/primitives/QGPanel";
 import { QGBadge } from "@/components/previews/quantum-grid/primitives/QGBadge";
 import { QGScrollReveal } from "@/components/previews/quantum-grid/primitives/QGScrollReveal";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const PROVIDER_LABELS: Record<string, { label: string; color: string }> = {
   EMAIL: { label: "Email", color: "#E8B4B8" },
@@ -200,28 +201,31 @@ function PreferencesPanel() {
 
 /* ── Danger Zone ──────────────────────────────────────────────────────── */
 
-function DangerZone() {
+function SignOutButton() {
   const { logout } = useAuthStore();
 
+  return (
+    <button
+      onClick={logout}
+      className="w-full py-3 px-5 text-[13px] font-semibold font-sans tracking-wide rounded-[10px] border border-[rgba(232,180,184,0.12)] cursor-pointer transition-all duration-200 bg-[rgba(232,180,184,0.04)] text-[#B8A99A] hover:bg-[rgba(232,180,184,0.08)] hover:text-[#F0EBE0]"
+    >
+      Sign Out
+    </button>
+  );
+}
+
+function DangerZone() {
   return (
     <div className="border border-[rgba(235,87,87,0.12)] rounded-[14px] px-[22px] py-[18px] bg-[rgba(235,87,87,0.02)]">
       <div className="text-[11px] tracking-[0.14em] uppercase text-[#EB5757] mb-3.5 font-semibold font-sans opacity-70">
         Danger Zone
       </div>
-      <div className="flex gap-3">
-        <button
-          onClick={logout}
-          className="flex-1 py-2.5 px-5 text-[13px] font-semibold font-sans tracking-wide rounded-[10px] border border-[rgba(235,87,87,0.2)] cursor-pointer transition-all duration-300 ease-in-out bg-[rgba(235,87,87,0.06)] text-[#EB5757]"
-        >
-          Sign Out
-        </button>
-        <button
-          className="flex-1 py-2.5 px-5 text-[13px] font-semibold font-sans tracking-wide rounded-[10px] border border-[rgba(235,87,87,0.1)] cursor-not-allowed transition-all duration-300 ease-in-out bg-[rgba(235,87,87,0.03)] text-dim opacity-60"
-          disabled
-        >
-          Delete Account
-        </button>
-      </div>
+      <button
+        className="w-full py-2.5 px-5 text-[13px] font-semibold font-sans tracking-wide rounded-[10px] border border-[rgba(235,87,87,0.1)] cursor-not-allowed transition-all duration-300 ease-in-out bg-[rgba(235,87,87,0.03)] text-[#5A5347] opacity-60"
+        disabled
+      >
+        Delete Account
+      </button>
     </div>
   );
 }
@@ -234,13 +238,12 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <PageLayout title="Settings" subtitle="Account and preferences" maxWidth="narrow">
-        <QGPanel>
-          <div className="text-center py-10">
-            <p className="text-sm text-dim m-0 font-sans">
-              Please log in to view settings.
-            </p>
-          </div>
-        </QGPanel>
+        <EmptyState
+          icon="lock"
+          title="Not Signed In"
+          description="Please log in to view your account settings and preferences."
+          action={{ label: "Sign In", href: "/" }}
+        />
       </PageLayout>
     );
   }
@@ -260,8 +263,13 @@ export default function SettingsPage() {
         </div>
       </QGScrollReveal>
 
-      {/* ── Danger Zone ── */}
+      {/* ── Sign Out (normal action) ── */}
       <QGScrollReveal staggerIndex={2}>
+        <SignOutButton />
+      </QGScrollReveal>
+
+      {/* ── Danger Zone ── */}
+      <QGScrollReveal staggerIndex={3}>
         <DangerZone />
       </QGScrollReveal>
     </PageLayout>
