@@ -116,7 +116,7 @@ export function QGLandingPage({ onLaunch, onDocs }: QGLandingPageProps) {
             Digital&nbsp;Infrastructure
           </h1>
           <p className="sv-hero-subtitle page-enter-up" style={{ animationDelay: "350ms" }}>
-            Treasury bills, private credit, and real estate — tokenized with
+            Treasury bills, private credit, and real estate, tokenized with
             institutional security on Avalanche.
           </p>
           <div className="sv-hero-ctas page-enter-up" style={{ animationDelay: "500ms" }}>
