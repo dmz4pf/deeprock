@@ -400,6 +400,12 @@ input[type=number] { -moz-appearance: textfield; }
   to { transform: rotate(360deg); }
 }
 
+/* Global spin — ensures Tailwind animate-spin works everywhere */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Fusion B New Animations ─── */
 
 /* Iridescent border rotation */
@@ -1317,14 +1323,7 @@ input[type=number] { -moz-appearance: textfield; }
   transform: scale(1);
 }
 
-/* Page entrance animation (mount-triggered, not scroll) */
-@keyframes pageEnterUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.page-enter-up {
-  animation: pageEnterUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+/* Entrance reveal animations moved to sovereign-landing.css */
 
 /* ── Skeleton shimmer ── */
 @keyframes skeletonShimmer {
