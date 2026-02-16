@@ -38,6 +38,56 @@
   mask-image: linear-gradient(to bottom, transparent 0px, transparent 65px, black 115px);
 }
 
+/* Hero gradient — gentle drift of existing colors */
+@property --gx1 { syntax: "<percentage>"; initial-value: 15%; inherits: false; }
+@property --gy1 { syntax: "<percentage>"; initial-value: -10%; inherits: false; }
+@property --gx2 { syntax: "<percentage>"; initial-value: 85%; inherits: false; }
+@property --gy2 { syntax: "<percentage>"; initial-value: 5%; inherits: false; }
+@property --gx3 { syntax: "<percentage>"; initial-value: 50%; inherits: false; }
+@property --gy3 { syntax: "<percentage>"; initial-value: 115%; inherits: false; }
+@property --gx4 { syntax: "<percentage>"; initial-value: 95%; inherits: false; }
+@property --gy4 { syntax: "<percentage>"; initial-value: 55%; inherits: false; }
+@property --gx5 { syntax: "<percentage>"; initial-value: 40%; inherits: false; }
+@property --gy5 { syntax: "<percentage>"; initial-value: 50%; inherits: false; }
+
+.sv-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 90% at var(--gx1) var(--gy1), rgba(201, 160, 220, 0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 110% 80% at var(--gx2) var(--gy2), rgba(232, 180, 184, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse 120% 70% at var(--gx3) var(--gy3), rgba(124, 58, 237, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 90% at var(--gx4) var(--gy4), rgba(201, 160, 220, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at var(--gx5) var(--gy5), rgba(232, 180, 184, 0.12) 0%, transparent 45%);
+  animation: heroGradientDrift 20s ease-in-out infinite;
+}
+
+@keyframes heroGradientDrift {
+  0%, 100% {
+    --gx1: 15%; --gy1: -10%;
+    --gx2: 85%; --gy2: 5%;
+    --gx3: 50%; --gy3: 115%;
+    --gx4: 95%; --gy4: 55%;
+    --gx5: 40%; --gy5: 50%;
+  }
+  33% {
+    --gx1: 50%; --gy1: 15%;
+    --gx2: 55%; --gy2: 35%;
+    --gx3: 30%; --gy3: 85%;
+    --gx4: 65%; --gy4: 30%;
+    --gx5: 60%; --gy5: 70%;
+  }
+  66% {
+    --gx1: 25%; --gy1: 25%;
+    --gx2: 75%; --gy2: 40%;
+    --gx3: 65%; --gy3: 90%;
+    --gx4: 45%; --gy4: 45%;
+    --gx5: 25%; --gy5: 35%;
+  }
+}
 
 
 .sv-landing::-webkit-scrollbar { width: 4px; }
