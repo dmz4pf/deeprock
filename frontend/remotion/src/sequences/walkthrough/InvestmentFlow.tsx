@@ -16,18 +16,17 @@ export const InvestmentFlow: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  /* Phase 1 → 2 crossfade */
-  const phase1Opacity = interpolate(frame, [160, 190], [1, 0], {
+  const phase1Opacity = interpolate(frame, [100, 120], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const phase2Opacity = interpolate(frame, [180, 210], [0, 1], {
+  const phase2Opacity = interpolate(frame, [110, 130], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   const checkScale = spring({
-    frame: frame - 220,
+    frame: frame - 130,
     fps,
     config: { damping: 12, stiffness: 100 },
   });
@@ -39,12 +38,12 @@ export const InvestmentFlow: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(59,130,246,0.05), transparent 60%)",
+            "radial-gradient(ellipse at center, rgba(232,180,184,0.05), transparent 60%)",
         }}
       />
 
       {/* Phase 1: Invest flow steps */}
-      <Sequence from={0} durationInFrames={200} premountFor={10}>
+      <Sequence from={0} durationInFrames={130} premountFor={5}>
         <AbsoluteFill
           style={{
             display: "flex",
@@ -55,25 +54,10 @@ export const InvestmentFlow: React.FC = () => {
             opacity: phase1Opacity,
           }}
         >
-          <FadeIn delay={0} duration={20} direction="none">
+          <FadeIn delay={0} duration={18} direction="up" distance={20}>
             <div
               style={{
-                fontSize: 12,
-                fontFamily: FONT_SANS,
-                fontWeight: 600,
-                color: COLORS.textDim,
-                textTransform: "uppercase",
-                letterSpacing: "0.25em",
-              }}
-            >
-              Investment Flow
-            </div>
-          </FadeIn>
-
-          <FadeIn delay={10} duration={25} direction="up">
-            <div
-              style={{
-                fontSize: 44,
+                fontSize: 60,
                 fontFamily: FONT_SERIF,
                 fontWeight: 700,
                 color: COLORS.textPrimary,
@@ -84,29 +68,22 @@ export const InvestmentFlow: React.FC = () => {
             </div>
           </FadeIn>
 
-          {/* Steps */}
-          <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
             {[
               { num: "1", label: "Select Pool" },
               { num: "2", label: "Enter Amount" },
               { num: "3", label: "Confirm" },
             ].map((step, i) => {
-              const stepDelay = 40 + i * 25;
+              const stepScale = spring({
+                frame: frame - 25 - i * 12,
+                fps,
+                config: { damping: 14, stiffness: 120 },
+              });
               const stepOpacity = interpolate(
                 frame,
-                [stepDelay, stepDelay + 20],
+                [25 + i * 12, 35 + i * 12],
                 [0, 1],
                 { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-              );
-              const stepY = interpolate(
-                frame,
-                [stepDelay, stepDelay + 20],
-                [20, 0],
-                {
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                  easing: Easing.out(Easing.quad),
-                }
               );
 
               return (
@@ -114,8 +91,8 @@ export const InvestmentFlow: React.FC = () => {
                   {i > 0 && (
                     <div
                       style={{
-                        width: 40,
-                        height: 1,
+                        width: 48,
+                        height: 2,
                         backgroundColor: COLORS.border,
                         opacity: stepOpacity,
                       }}
@@ -126,32 +103,32 @@ export const InvestmentFlow: React.FC = () => {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 12,
+                      gap: 14,
                       opacity: stepOpacity,
-                      transform: `translateY(${stepY}px)`,
+                      transform: `scale(${stepScale})`,
                     }}
                   >
                     <div
                       style={{
-                        width: 56,
-                        height: 56,
+                        width: 72,
+                        height: 72,
                         borderRadius: "50%",
-                        border: `2px solid ${COLORS.accent}40`,
-                        backgroundColor: `${COLORS.accent}10`,
+                        border: `2px solid ${COLORS.copper}40`,
+                        backgroundColor: `${COLORS.copper}10`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 22,
+                        fontSize: 30,
                         fontFamily: FONT_SANS,
                         fontWeight: 700,
-                        color: COLORS.accent,
+                        color: COLORS.copper,
                       }}
                     >
                       {step.num}
                     </div>
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: 24,
                         fontFamily: FONT_SANS,
                         fontWeight: 500,
                         color: COLORS.textSecondary,
@@ -168,39 +145,40 @@ export const InvestmentFlow: React.FC = () => {
       </Sequence>
 
       {/* Phase 2: Success state */}
-      <Sequence from={180} durationInFrames={180} premountFor={15}>
+      <Sequence from={110} durationInFrames={100} premountFor={10}>
         <AbsoluteFill
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 24,
+            gap: 28,
             opacity: phase2Opacity,
           }}
         >
           <div
             style={{
-              width: 100,
-              height: 100,
+              width: 120,
+              height: 120,
               borderRadius: "50%",
               backgroundColor: `${COLORS.green}15`,
               border: `2px solid ${COLORS.green}40`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 48,
+              fontSize: 60,
               transform: `scale(${checkScale})`,
-              boxShadow: `0 0 30px ${COLORS.green}20`,
+              boxShadow: `0 0 40px ${COLORS.green}20`,
+              color: COLORS.green,
             }}
           >
             ✓
           </div>
 
-          <FadeIn delay={40} duration={20}>
+          <FadeIn delay={20} duration={15}>
             <div
               style={{
-                fontSize: 32,
+                fontSize: 48,
                 fontFamily: FONT_SERIF,
                 fontWeight: 700,
                 color: COLORS.green,
@@ -210,10 +188,10 @@ export const InvestmentFlow: React.FC = () => {
             </div>
           </FadeIn>
 
-          <FadeIn delay={55} duration={20}>
+          <FadeIn delay={30} duration={15}>
             <div
               style={{
-                fontSize: 18,
+                fontSize: 28,
                 fontFamily: FONT_SANS,
                 color: COLORS.textSecondary,
                 textAlign: "center",

@@ -10,34 +10,34 @@ import {
 } from "remotion";
 import { GoldParticles } from "../components/GoldParticles";
 import { FONT_SERIF, FONT_SANS } from "../lib/fonts";
-import { COLORS } from "../lib/theme";
+import { COLORS, GRADIENTS } from "../lib/theme";
 
 export const BrandReveal: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const logoScale = spring({
-    frame: frame - 90,
+    frame: frame - 30,
     fps,
     config: { damping: 200 },
   });
 
-  const logoOpacity = interpolate(frame, [80, 110], [0, 1], {
+  const logoOpacity = interpolate(frame, [20, 50], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const taglineOpacity = interpolate(frame, [160, 200], [0, 1], {
+  const taglineOpacity = interpolate(frame, [65, 95], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const taglineY = interpolate(frame, [160, 200], [20, 0], {
+  const taglineY = interpolate(frame, [65, 95], [20, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  const lineWidth = interpolate(frame, [210, 260], [0, 200], {
+  const lineWidth = interpolate(frame, [95, 135], [0, 280], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
@@ -50,12 +50,12 @@ export const BrandReveal: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(59,130,246,0.08), transparent 60%)",
+            "radial-gradient(ellipse at center, rgba(232,180,184,0.06), transparent 60%)",
         }}
       />
 
-      <Sequence from={0} durationInFrames={200} premountFor={10}>
-        <GoldParticles count={80} convergeFrame={20} convergeDuration={80} />
+      <Sequence from={0} durationInFrames={150} premountFor={10}>
+        <GoldParticles count={80} convergeFrame={10} convergeDuration={50} />
       </Sequence>
 
       <div
@@ -66,12 +66,12 @@ export const BrandReveal: React.FC = () => {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 16,
+          gap: 24,
         }}
       >
         <div
           style={{
-            fontSize: 96,
+            fontSize: 120,
             fontFamily: FONT_SERIF,
             fontWeight: 700,
             color: COLORS.textPrimary,
@@ -85,11 +85,11 @@ export const BrandReveal: React.FC = () => {
 
         <div
           style={{
-            fontSize: 22,
+            fontSize: 32,
             fontFamily: FONT_SANS,
             fontWeight: 300,
             color: COLORS.textSecondary,
-            letterSpacing: "0.2em",
+            letterSpacing: "0.25em",
             textTransform: "uppercase",
             opacity: taglineOpacity,
             transform: `translateY(${taglineY}px)`,
@@ -101,10 +101,10 @@ export const BrandReveal: React.FC = () => {
         <div
           style={{
             width: lineWidth,
-            height: 1,
-            backgroundColor: COLORS.gold,
-            marginTop: 8,
-            boxShadow: `0 0 10px ${COLORS.goldDim}`,
+            height: 2,
+            background: GRADIENTS.iridescent,
+            marginTop: 12,
+            boxShadow: `0 0 20px rgba(232,180,184,0.25)`,
           }}
         />
       </div>

@@ -3,9 +3,9 @@
 
 ## Overview
 
-A 2:30 cinematic product demo built in Remotion (React). Hybrid format — brand opening, then app walkthrough with AI voiceover, animated callouts, and ambient electronic background music.
+A 1:15 cinematic product demo built in Remotion (React). Hybrid format — brand opening, then animated walkthrough with AI voiceover and ambient electronic background music.
 
-- **Output:** 1920x1080 @ 30fps, MP4
+- **Output:** 1920x1080 @ 30fps, MP4 (2250 frames, 75 seconds)
 - **Voice:** AI-generated female (ElevenLabs), confident institutional tone
 - **Music:** Ambient electronic/cinematic, royalty-free
 - **Purpose:** Social media + project submission / pitch
@@ -14,55 +14,61 @@ A 2:30 cinematic product demo built in Remotion (React). Hybrid format — brand
 
 ## Video Structure (5 Acts)
 
-| Act | Time | Content | Visual Treatment |
-|-----|------|---------|-----------------|
-| **I. Brand Reveal** | 0:00–0:10 | Logo + tagline | Dark void, gold particles converge into logo. Tagline fades in. |
-| **II. Context** | 0:10–0:25 | What DeepRock solves | Typography on dark bg. Quick keyword visuals. |
-| **III. The Platform** | 0:25–1:50 | Full app walkthrough | Recreated app screens, smooth transitions, elements animate on cue. |
-| **IV. Trust & Security** | 1:50–2:15 | Documents, passkeys, non-custodial | Seal animation, biometric visual, trust badges. |
-| **V. Close** | 2:15–2:30 | CTA + logo lockup | Final tagline, URL. |
+| Act | Frames | Time | Content | Visual Treatment |
+|-----|--------|------|---------|-----------------|
+| **I. Brand Reveal** | 180 | 0:00–0:06 | Logo + tagline | Dark void, copper particles converge into logo. Tagline fades in with iridescent line. |
+| **II. Context** | 210 | 0:05–0:12 | What DeepRock solves | Asset class keyword pills animate in, problem text reveals word-by-word, solution statement fades up. |
+| **III. The Platform** | 1350 | 0:12–0:57 | Animated walkthrough | 6 sub-scenes with hard cuts: Landing, Auth, Portfolio, Pools, Invest, Montage. |
+| **IV. Trust & Security** | 360 | 0:56–1:08 | Documents + passkeys | Phase 1: Verification seal + cryptographic proof. Phase 2: Passkey lock + trust badges. |
+| **V. Close** | 210 | 1:08–1:15 | Logo lockup | "DeepRock" + iridescent line + "Now live on testnet." |
+
+*Note: 15-frame fade transitions between acts create ~0.5s overlaps.*
 
 ---
 
-## Act III Breakdown (85 seconds)
+## Act III Breakdown (45 seconds, 1350 frames)
 
-1. **Landing page fly-through** (10s) — Hero with parallax watermark, features grid reveal
-2. **Auth moment** (8s) — Passkey button → fingerprint → "Authenticated" gold glow → app transition
-3. **Portfolio dashboard** (18s) — Balance counter, allocation donut, health gauge, live feed
-4. **Pool browsing** (15s) — Category cards, Treasury detail, pool cards with capacity bars
-5. **Investment flow** (12s) — Pool detail → "Invest Now" → drawer → confirm → success
-6. **Quick montage** (7s) — Mobile view, documents, settings, different categories
-7. **Documents & security** (15s) — Seal verification, passkey management
+| Sub-scene | Frames | Duration | On-Screen Content |
+|-----------|--------|----------|-------------------|
+| **Landing** | 210 | 7s | "Five Asset Classes. One Platform." + 5 asset class cards + transparency tagline |
+| **Auth** | 180 | 6s | Fingerprint icon springs in → "Authenticated" + "Smart wallet from your fingerprint" → word-by-word reveal |
+| **Portfolio** | 300 | 10s | "Real-Time Position Tracking" + animated stats ($2.47M, 7.2%, 12) + allocation bars (Treasury 45%, RE 25%, Credit 18%, Bonds 12%) + "All on-chain. All verifiable." |
+| **Pool Browsing** | 240 | 8s | "Browse Investment Pools" + 4 pool cards with APY/risk/capacity + transparency tagline |
+| **Invest Flow** | 210 | 7s | "Three Steps. Instant Settlement." + step circles 1-2-3 → ✓ "Investment Confirmed" + "Sub-second finality" |
+| **Montage** | 210 | 7s | "Built for Performance" + 4 feature cards (Sub-Second Finality, Full Transparency, Global Access, Institutional Grade) |
 
 ---
 
-## Voiceover Script (~200 words, ~2:20 at narrator pace)
+## Voiceover Script (~140 words, 75s with visual breathing room)
 
-> [Act I — Logo forming.]
+> **[0:00 — Act I: Logo forming. Particles converge, "DeepRock" appears.]**
 > "DeepRock. Tokenized real-world assets on Avalanche."
 >
-> [Act II — Brief context.]
+> **[0:06 — Act II: Asset class keywords appear, then problem/solution text.]**
 > "Treasury bills, real estate, private credit — traditionally difficult to access, slow to settle, and opaque. DeepRock makes them composable, instant, and transparent."
 >
-> [Act III — Landing page.]
-> "The platform is built around five asset classes and a growing directory of investment pools — each independently audited with live capacity and fee transparency."
+> **[0:12 — Landing: Five asset class cards animate in.]**
+> "Five asset classes. A growing directory of investment pools — each independently audited with live transparency."
 >
-> [Auth — fingerprint.]
-> "Onboarding uses Avalanche's account abstraction. A smart wallet is created from your fingerprint — no seed phrases, no extensions. One biometric scan and you're authenticated."
+> **[0:19 — Auth: Fingerprint icon, "Authenticated" glow.]**
+> "One biometric scan creates a smart wallet. No seed phrases. No extensions."
 >
-> [Portfolio.]
-> "The portfolio dashboard tracks every position in real time. Allocation breakdowns, yield distributions, risk scoring — all on-chain, all verifiable."
+> **[0:25 — Portfolio: Stats count up, allocation bars fill.]**
+> "The portfolio dashboard tracks every position in real time — balance, returns, allocation breakdowns. All on-chain. All verifiable."
 >
-> [Pools browsing.]
-> "Pools are organized by asset class — treasury, real estate, private credit, corporate bonds, and commodities. Each one shows APY, lockup terms, risk rating, and remaining capacity."
+> **[0:35 — Pools: Four pool cards with APY and risk data.]**
+> "Each pool shows APY, risk rating, lockup terms, and remaining capacity — all visible before you invest."
 >
-> [Investment flow.]
-> "Investing is straightforward. Select a pool, enter an amount, confirm. Settlement is instant — Avalanche's sub-second finality means no T-plus-two delays."
+> **[0:43 — Invest Flow: 1-2-3 steps, then success checkmark.]**
+> "Select a pool. Enter an amount. Confirm. Sub-second finality — no T-plus-two delays."
 >
-> [Documents & security.]
-> "Documents are sealed on-chain with cryptographic proofs anyone can verify. Keys are secured biometrically through passkeys — non-custodial by design."
+> **[0:50 — Montage: Feature cards. Music only, no narration.]**
+> *(visual breathing room — let the feature cards speak)*
 >
-> [Close — logo, URL.]
+> **[0:57 — Act IV: Verification seal, then passkey lock + badges.]**
+> "Documents are sealed on-chain with cryptographic proofs anyone can verify. Keys are secured biometrically — non-custodial by design."
+>
+> **[1:08 — Act V: Logo + line + closing.]**
 > "DeepRock. Now live on testnet."
 
 ---
@@ -75,7 +81,7 @@ frontend/
     remotion.config.ts
     src/
       Root.tsx                    # Composition entry
-      Video.tsx                   # Master composition (2:30, 30fps)
+      Video.tsx                   # Master composition (1:15, 30fps, 2250 frames)
       sequences/
         BrandReveal.tsx           # Act I — logo + particles
         Context.tsx               # Act II — problem statement

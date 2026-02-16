@@ -12,11 +12,11 @@ import { FONT_SERIF, FONT_SANS } from "../lib/fonts";
 import { COLORS } from "../lib/theme";
 
 const KEYWORDS = [
-  { text: "Treasury Bills", color: "#E8B4B8" },
-  { text: "Real Estate", color: "#C9A0DC" },
-  { text: "Private Credit", color: "#F5E6D3" },
-  { text: "Corporate Bonds", color: "#B8A99A" },
-  { text: "Commodities", color: "#6FCF97" },
+  { text: "Treasury Bills", color: COLORS.copper },
+  { text: "Real Estate", color: COLORS.roseGold },
+  { text: "Private Credit", color: COLORS.teal },
+  { text: "Corporate Bonds", color: COLORS.gold },
+  { text: "Commodities", color: COLORS.copperBright },
 ];
 
 export const Context: React.FC = () => {
@@ -29,7 +29,7 @@ export const Context: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(99,102,241,0.06), transparent 70%)",
+            "radial-gradient(ellipse at center, rgba(201,160,220,0.05), transparent 70%)",
         }}
       />
 
@@ -41,11 +41,11 @@ export const Context: React.FC = () => {
           justifyContent: "center",
           height: "100%",
           padding: "0 200px",
-          gap: 50,
+          gap: 48,
         }}
       >
         {/* Keywords */}
-        <Sequence from={0} durationInFrames={180} premountFor={10}>
+        <Sequence from={0} durationInFrames={200} layout="none" premountFor={10}>
           <div
             style={{
               display: "flex",
@@ -57,16 +57,13 @@ export const Context: React.FC = () => {
             {KEYWORDS.map((kw, i) => {
               const kwOpacity = interpolate(
                 frame,
-                [i * 15, i * 15 + 20],
+                [i * 10, i * 10 + 18],
                 [0, 1],
-                {
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                }
+                { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
               );
               const kwScale = interpolate(
                 frame,
-                [i * 15, i * 15 + 20],
+                [i * 10, i * 10 + 18],
                 [0.8, 1],
                 {
                   extrapolateLeft: "clamp",
@@ -79,12 +76,12 @@ export const Context: React.FC = () => {
                 <div
                   key={i}
                   style={{
-                    padding: "12px 28px",
-                    borderRadius: 12,
+                    padding: "16px 36px",
+                    borderRadius: 14,
                     border: `1px solid ${kw.color}33`,
                     backgroundColor: `${kw.color}0A`,
                     color: kw.color,
-                    fontSize: 20,
+                    fontSize: 28,
                     fontFamily: FONT_SANS,
                     fontWeight: 600,
                     opacity: kwOpacity,
@@ -99,22 +96,22 @@ export const Context: React.FC = () => {
         </Sequence>
 
         {/* Problem statement */}
-        <Sequence from={100} durationInFrames={350} premountFor={30}>
+        <Sequence from={60} durationInFrames={140} layout="none" premountFor={15}>
           <TextReveal
             text="Traditionally difficult to access, slow to settle, and opaque."
             startFrame={0}
-            framesPerWord={5}
-            fontSize={28}
+            framesPerWord={4}
+            fontSize={38}
             color={COLORS.textSecondary}
           />
         </Sequence>
 
         {/* Solution statement */}
-        <Sequence from={220} durationInFrames={240} premountFor={30}>
-          <FadeIn delay={0} duration={30} direction="up">
+        <Sequence from={110} durationInFrames={100} layout="none" premountFor={15}>
+          <FadeIn delay={0} duration={22} direction="up">
             <div
               style={{
-                fontSize: 42,
+                fontSize: 56,
                 fontFamily: FONT_SERIF,
                 fontWeight: 700,
                 color: COLORS.textPrimary,
@@ -123,9 +120,9 @@ export const Context: React.FC = () => {
               }}
             >
               DeepRock makes them{" "}
-              <span style={{ color: COLORS.accent }}>composable</span>,{" "}
+              <span style={{ color: COLORS.copper }}>composable</span>,{" "}
               <span style={{ color: COLORS.teal }}>instant</span>, and{" "}
-              <span style={{ color: COLORS.accent2 }}>transparent</span>.
+              <span style={{ color: COLORS.roseGold }}>transparent</span>.
             </div>
           </FadeIn>
         </Sequence>

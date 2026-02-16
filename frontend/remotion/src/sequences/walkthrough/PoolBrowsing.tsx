@@ -4,6 +4,8 @@ import {
   Sequence,
   useCurrentFrame,
   interpolate,
+  spring,
+  useVideoConfig,
   Easing,
 } from "remotion";
 import { FadeIn } from "../../components/FadeIn";
@@ -11,14 +13,15 @@ import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS } from "../../lib/theme";
 
 const POOLS = [
-  { name: "US Treasury 6-Month", apy: "5.2%", risk: "Low", capacity: "$24M / $50M", color: "#3B82F6" },
-  { name: "Manhattan REIT Fund", apy: "8.7%", risk: "Medium", capacity: "$12M / $30M", color: "#6366F1" },
-  { name: "SME Credit Pool", apy: "11.4%", risk: "Medium-High", capacity: "$8M / $20M", color: "#7C3AED" },
-  { name: "Gold-Backed Token", apy: "3.1%", risk: "Low", capacity: "$18M / $40M", color: "#D4AF37" },
+  { name: "US Treasury 6-Month", apy: "5.2%", risk: "Low", capacity: "$24M / $50M", color: COLORS.copper },
+  { name: "Manhattan REIT Fund", apy: "8.7%", risk: "Medium", capacity: "$12M / $30M", color: COLORS.roseGold },
+  { name: "SME Credit Pool", apy: "11.4%", risk: "Med-High", capacity: "$8M / $20M", color: COLORS.copperBright },
+  { name: "Gold-Backed Token", apy: "3.1%", risk: "Low", capacity: "$18M / $40M", color: COLORS.gold },
 ];
 
 export const PoolBrowsing: React.FC = () => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
   return (
     <AbsoluteFill
@@ -36,34 +39,15 @@ export const PoolBrowsing: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(99,102,241,0.06), transparent 70%)",
+            "radial-gradient(ellipse at center, rgba(232,180,184,0.06), transparent 70%)",
         }}
       />
 
-      {/* Section label */}
-      <Sequence from={0} durationInFrames={430} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={20} direction="none">
+      <Sequence from={5} durationInFrames={235} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={20}>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: FONT_SANS,
-              fontWeight: 600,
-              color: COLORS.textDim,
-              textTransform: "uppercase",
-              letterSpacing: "0.25em",
-            }}
-          >
-            Pool Explorer
-          </div>
-        </FadeIn>
-      </Sequence>
-
-      {/* Headline */}
-      <Sequence from={10} durationInFrames={420} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
-          <div
-            style={{
-              fontSize: 44,
+              fontSize: 60,
               fontFamily: FONT_SERIF,
               fontWeight: 700,
               color: COLORS.textPrimary,
@@ -75,54 +59,47 @@ export const PoolBrowsing: React.FC = () => {
         </FadeIn>
       </Sequence>
 
-      {/* Pool cards */}
-      <Sequence from={50} durationInFrames={400} layout="none" premountFor={15}>
+      <Sequence from={25} durationInFrames={215} layout="none" premountFor={10}>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 20,
-            maxWidth: 800,
+            gap: 24,
+            maxWidth: 900,
           }}
         >
           {POOLS.map((pool, i) => {
-            const cardDelay = i * 18;
+            const s = spring({
+              frame: frame - 25 - i * 8,
+              fps,
+              config: { damping: 14, stiffness: 100 },
+            });
             const cardOpacity = interpolate(
-              frame - 50,
-              [cardDelay, cardDelay + 20],
+              frame - 25,
+              [i * 8, i * 8 + 12],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-            );
-            const cardScale = interpolate(
-              frame - 50,
-              [cardDelay, cardDelay + 20],
-              [0.95, 1],
-              {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-                easing: Easing.out(Easing.quad),
-              }
             );
 
             return (
               <div
                 key={i}
                 style={{
-                  padding: "24px",
+                  padding: "28px",
                   borderRadius: 16,
                   border: `1px solid ${pool.color}20`,
                   backgroundColor: COLORS.surface,
                   opacity: cardOpacity,
-                  transform: `scale(${cardScale})`,
+                  transform: `scale(${s})`,
                 }}
               >
                 <div
                   style={{
-                    fontSize: 16,
+                    fontSize: 26,
                     fontFamily: FONT_SANS,
                     fontWeight: 600,
                     color: COLORS.textPrimary,
-                    marginBottom: 16,
+                    marginBottom: 18,
                   }}
                 >
                   {pool.name}
@@ -131,7 +108,7 @@ export const PoolBrowsing: React.FC = () => {
                   <div>
                     <div
                       style={{
-                        fontSize: 28,
+                        fontSize: 40,
                         fontFamily: FONT_SANS,
                         fontWeight: 700,
                         color: pool.color,
@@ -141,7 +118,7 @@ export const PoolBrowsing: React.FC = () => {
                     </div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 18,
                         fontFamily: FONT_SANS,
                         color: COLORS.textDim,
                         textTransform: "uppercase",
@@ -154,7 +131,7 @@ export const PoolBrowsing: React.FC = () => {
                   <div style={{ textAlign: "right" }}>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: 22,
                         fontFamily: FONT_SANS,
                         color: COLORS.textSecondary,
                       }}
@@ -163,10 +140,10 @@ export const PoolBrowsing: React.FC = () => {
                     </div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 18,
                         fontFamily: FONT_SANS,
                         color: COLORS.textDim,
-                        marginTop: 4,
+                        marginTop: 6,
                       }}
                     >
                       {pool.capacity}
@@ -179,20 +156,19 @@ export const PoolBrowsing: React.FC = () => {
         </div>
       </Sequence>
 
-      {/* Subtitle */}
-      <Sequence from={160} durationInFrames={290} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
+      <Sequence from={110} durationInFrames={130} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={12}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: 28,
               fontFamily: FONT_SANS,
               color: COLORS.textSecondary,
               textAlign: "center",
-              maxWidth: 550,
+              maxWidth: 650,
             }}
           >
-            APY, lockup terms, risk rating, and remaining capacity — all visible
-            before you invest.
+            APY, lockup terms, risk rating, and capacity — all visible before
+            you invest.
           </div>
         </FadeIn>
       </Sequence>

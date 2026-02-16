@@ -8,7 +8,7 @@ import {
   Easing,
 } from "remotion";
 import { FONT_SERIF, FONT_SANS } from "../lib/fonts";
-import { COLORS } from "../lib/theme";
+import { COLORS, GRADIENTS } from "../lib/theme";
 
 export const Closing: React.FC = () => {
   const frame = useCurrentFrame();
@@ -18,30 +18,26 @@ export const Closing: React.FC = () => {
     frame,
     fps,
     config: { damping: 200 },
-    delay: 15,
+    delay: 10,
   });
 
-  const logoOpacity = interpolate(frame, [10, 40], [0, 1], {
+  const logoOpacity = interpolate(frame, [8, 30], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const ctaOpacity = interpolate(frame, [60, 90], [0, 1], {
+  const ctaOpacity = interpolate(frame, [45, 70], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const ctaY = interpolate(frame, [60, 90], [15, 0], {
+  const ctaY = interpolate(frame, [45, 70], [15, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  const urlOpacity = interpolate(frame, [120, 150], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
 
-  const lineWidth = interpolate(frame, [90, 140], [0, 160], {
+  const lineWidth = interpolate(frame, [65, 105], [0, 240], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
@@ -53,7 +49,8 @@ export const Closing: React.FC = () => {
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(ellipse at center, rgba(59,130,246,0.06), transparent 60%)",
+          background:
+            "radial-gradient(ellipse at center, rgba(232,180,184,0.05), transparent 60%)",
         }}
       />
 
@@ -64,12 +61,12 @@ export const Closing: React.FC = () => {
           alignItems: "center",
           justifyContent: "center",
           height: "100%",
-          gap: 20,
+          gap: 28,
         }}
       >
         <div
           style={{
-            fontSize: 80,
+            fontSize: 110,
             fontFamily: FONT_SERIF,
             fontWeight: 700,
             color: COLORS.textPrimary,
@@ -84,15 +81,15 @@ export const Closing: React.FC = () => {
         <div
           style={{
             width: lineWidth,
-            height: 1,
-            backgroundColor: COLORS.gold,
-            boxShadow: `0 0 10px ${COLORS.goldDim}`,
+            height: 2,
+            background: GRADIENTS.iridescent,
+            boxShadow: `0 0 20px ${COLORS.copper}40`,
           }}
         />
 
         <div
           style={{
-            fontSize: 28,
+            fontSize: 40,
             fontFamily: FONT_SANS,
             fontWeight: 400,
             color: COLORS.textSecondary,
@@ -101,19 +98,6 @@ export const Closing: React.FC = () => {
           }}
         >
           Now live on testnet.
-        </div>
-
-        <div
-          style={{
-            fontSize: 16,
-            fontFamily: FONT_SANS,
-            fontWeight: 300,
-            color: COLORS.textDim,
-            letterSpacing: "0.1em",
-            opacity: urlOpacity,
-          }}
-        >
-          deeprock.finance
         </div>
       </div>
     </AbsoluteFill>

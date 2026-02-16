@@ -59,7 +59,7 @@ export const AnimatedStat: React.FC<AnimatedStatProps> = ({
       {label && (
         <div
           style={{
-            fontSize: 12,
+            fontSize: 20,
             fontFamily: FONT_SANS,
             color: COLORS.textDim,
             textTransform: "uppercase",

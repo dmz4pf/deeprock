@@ -4,6 +4,8 @@ import {
   Sequence,
   useCurrentFrame,
   interpolate,
+  spring,
+  useVideoConfig,
   Easing,
 } from "remotion";
 import { FadeIn } from "../../components/FadeIn";
@@ -11,15 +13,16 @@ import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS, GRADIENTS } from "../../lib/theme";
 
 const ASSET_CLASSES = [
-  { name: "Treasury Bills", icon: "🏛", color: "#3B82F6" },
-  { name: "Real Estate", icon: "🏢", color: "#6366F1" },
-  { name: "Private Credit", icon: "📄", color: "#7C3AED" },
-  { name: "Corporate Bonds", icon: "💼", color: "#14B8A6" },
-  { name: "Commodities", icon: "⛏", color: "#D4AF37" },
+  { name: "Treasury Bills", icon: "🏛", color: COLORS.copper },
+  { name: "Real Estate", icon: "🏢", color: COLORS.roseGold },
+  { name: "Private Credit", icon: "📄", color: COLORS.copperBright },
+  { name: "Corporate Bonds", icon: "💼", color: COLORS.teal },
+  { name: "Commodities", icon: "⛏", color: COLORS.gold },
 ];
 
 export const LandingFlythrough: React.FC = () => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
   return (
     <AbsoluteFill
@@ -40,35 +43,17 @@ export const LandingFlythrough: React.FC = () => {
         }}
       />
 
-      <Sequence from={0} durationInFrames={280} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={20} direction="none">
+      <Sequence from={5} durationInFrames={205} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={25}>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: FONT_SANS,
-              fontWeight: 600,
-              color: COLORS.textDim,
-              textTransform: "uppercase",
-              letterSpacing: "0.25em",
-              textAlign: "center",
-            }}
-          >
-            The Platform
-          </div>
-        </FadeIn>
-      </Sequence>
-
-      <Sequence from={15} durationInFrames={270} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
-          <div
-            style={{
-              fontSize: 52,
+              fontSize: 72,
               fontFamily: FONT_SERIF,
               fontWeight: 700,
               color: COLORS.textPrimary,
               textAlign: "center",
               lineHeight: 1.2,
-              maxWidth: 900,
+              maxWidth: 1000,
             }}
           >
             Five Asset Classes.{"\n"}One Platform.
@@ -76,56 +61,50 @@ export const LandingFlythrough: React.FC = () => {
         </FadeIn>
       </Sequence>
 
-      <Sequence from={60} durationInFrames={240} layout="none" premountFor={15}>
+      <Sequence from={30} durationInFrames={180} layout="none" premountFor={10}>
         <div
           style={{
             display: "flex",
             gap: 24,
             justifyContent: "center",
             flexWrap: "wrap",
-            maxWidth: 1100,
+            maxWidth: 1200,
           }}
         >
           {ASSET_CLASSES.map((asset, i) => {
-            const cardDelay = i * 12;
+            const s = spring({
+              frame: frame - 30 - i * 6,
+              fps,
+              config: { damping: 14, stiffness: 120 },
+            });
             const cardOpacity = interpolate(
-              frame - 60,
-              [cardDelay, cardDelay + 20],
+              frame - 30,
+              [i * 6, i * 6 + 12],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-            );
-            const cardY = interpolate(
-              frame - 60,
-              [cardDelay, cardDelay + 20],
-              [30, 0],
-              {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-                easing: Easing.out(Easing.quad),
-              }
             );
 
             return (
               <div
                 key={i}
                 style={{
-                  width: 180,
-                  padding: "28px 20px",
-                  borderRadius: 16,
+                  width: 200,
+                  padding: "32px 24px",
+                  borderRadius: 18,
                   border: `1px solid ${asset.color}25`,
-                  backgroundColor: `${asset.color}08`,
+                  backgroundColor: COLORS.surface,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: 12,
+                  gap: 16,
                   opacity: cardOpacity,
-                  transform: `translateY(${cardY}px)`,
+                  transform: `scale(${s})`,
                 }}
               >
-                <div style={{ fontSize: 36 }}>{asset.icon}</div>
+                <div style={{ fontSize: 48 }}>{asset.icon}</div>
                 <div
                   style={{
-                    fontSize: 14,
+                    fontSize: 24,
                     fontFamily: FONT_SANS,
                     fontWeight: 600,
                     color: asset.color,
@@ -140,15 +119,15 @@ export const LandingFlythrough: React.FC = () => {
         </div>
       </Sequence>
 
-      <Sequence from={140} durationInFrames={160} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
+      <Sequence from={90} durationInFrames={120} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={15}>
           <div
             style={{
-              fontSize: 18,
+              fontSize: 28,
               fontFamily: FONT_SANS,
               color: COLORS.textSecondary,
               textAlign: "center",
-              maxWidth: 650,
+              maxWidth: 750,
               lineHeight: 1.6,
             }}
           >

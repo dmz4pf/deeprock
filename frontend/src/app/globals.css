@@ -216,11 +216,11 @@
     @apply text-foreground font-sans text-[15px];
     background-color: #080510;
     background-image:
-      radial-gradient(ellipse 130% 90% at 15% -10%, rgba(201, 160, 220, 0.38) 0%, transparent 55%),
-      radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.32) 0%, transparent 50%),
-      radial-gradient(ellipse 120% 70% at 50% 115%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
-      radial-gradient(ellipse 100% 90% at 95% 55%, rgba(201, 160, 220, 0.28) 0%, transparent 50%),
-      radial-gradient(ellipse 80% 60% at 40% 50%, rgba(232, 180, 184, 0.16) 0%, transparent 45%);
+      radial-gradient(ellipse 130% 90% at 15% -10%, rgba(201, 160, 220, 0.50) 0%, transparent 55%),
+      radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.40) 0%, transparent 50%),
+      radial-gradient(ellipse 120% 70% at 50% 115%, rgba(124, 58, 237, 0.45) 0%, transparent 50%),
+      radial-gradient(ellipse 100% 90% at 95% 55%, rgba(201, 160, 220, 0.35) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at 40% 50%, rgba(232, 180, 184, 0.20) 0%, transparent 45%);
     background-attachment: fixed;
     margin: 0;
     overflow: hidden;

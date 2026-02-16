@@ -4,24 +4,26 @@ export const FPS = 30;
 /** Transition duration between acts (frames) */
 export const ACT_TRANSITION = 15;
 
-/** Act durations (frames) — must sum to 4560 (4500 + 4 transitions × 15) */
+/**
+ * Act durations (frames).
+ * Total composition = sum - (4 transitions * 15) = 2310 - 60 = 2250 frames = 75s
+ */
 export const ACT_FRAMES = {
-  I: 310,
-  II: 460,
-  III: 2560,
-  IV: 760,
-  V: 470,
+  I: 180,
+  II: 210,
+  III: 1350,
+  IV: 360,
+  V: 210,
 } as const;
 
-/** Act III sub-sequence durations (frames) — must sum to 2560 */
+/** Act III sub-sequence durations (frames) — must sum to 1350 */
 export const ACT_III_FRAMES = {
-  landing: 300,
-  auth: 240,
-  portfolio: 540,
-  poolBrowsing: 450,
-  investFlow: 360,
+  landing: 210,
+  auth: 180,
+  portfolio: 300,
+  poolBrowsing: 240,
+  investFlow: 210,
   montage: 210,
-  docsSecurity: 460,
 } as const;
 
 /** Convenience: seconds to frames */

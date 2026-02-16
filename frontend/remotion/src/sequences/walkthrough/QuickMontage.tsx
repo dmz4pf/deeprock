@@ -4,6 +4,8 @@ import {
   Sequence,
   useCurrentFrame,
   interpolate,
+  spring,
+  useVideoConfig,
   Easing,
 } from "remotion";
 import { FadeIn } from "../../components/FadeIn";
@@ -11,34 +13,15 @@ import { FONT_SERIF, FONT_SANS } from "../../lib/fonts";
 import { COLORS } from "../../lib/theme";
 
 const FEATURES = [
-  {
-    icon: "⚡",
-    title: "Sub-Second Finality",
-    desc: "Avalanche C-Chain consensus",
-    color: COLORS.accent,
-  },
-  {
-    icon: "🔍",
-    title: "Full Transparency",
-    desc: "On-chain audit trail",
-    color: COLORS.accent2,
-  },
-  {
-    icon: "🌐",
-    title: "Global Access",
-    desc: "24/7 markets, no borders",
-    color: COLORS.teal,
-  },
-  {
-    icon: "🛡",
-    title: "Institutional Grade",
-    desc: "Compliance-ready infrastructure",
-    color: COLORS.gold,
-  },
+  { icon: "⚡", title: "Sub-Second Finality", desc: "Avalanche C-Chain consensus", color: COLORS.copper },
+  { icon: "🔍", title: "Full Transparency", desc: "On-chain audit trail", color: COLORS.roseGold },
+  { icon: "🌐", title: "Global Access", desc: "24/7 markets, no borders", color: COLORS.teal },
+  { icon: "🛡", title: "Institutional Grade", desc: "Compliance-ready infra", color: COLORS.copperBright },
 ];
 
 export const QuickMontage: React.FC = () => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
   return (
     <AbsoluteFill
@@ -56,15 +39,15 @@ export const QuickMontage: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(212,175,55,0.04), transparent 60%)",
+            "radial-gradient(ellipse at center, rgba(232,180,184,0.04), transparent 60%)",
         }}
       />
 
-      <Sequence from={0} durationInFrames={200} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
+      <Sequence from={0} durationInFrames={210} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={20}>
           <div
             style={{
-              fontSize: 36,
+              fontSize: 56,
               fontFamily: FONT_SERIF,
               fontWeight: 700,
               color: COLORS.textPrimary,
@@ -76,32 +59,26 @@ export const QuickMontage: React.FC = () => {
         </FadeIn>
       </Sequence>
 
-      <Sequence from={25} durationInFrames={185} layout="none" premountFor={15}>
+      <Sequence from={15} durationInFrames={195} layout="none" premountFor={10}>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 24,
-            maxWidth: 700,
+            maxWidth: 800,
           }}
         >
           {FEATURES.map((feat, i) => {
-            const delay = i * 15;
+            const s = spring({
+              frame: frame - 15 - i * 8,
+              fps,
+              config: { damping: 14, stiffness: 120 },
+            });
             const opacity = interpolate(
-              frame - 25,
-              [delay, delay + 18],
+              frame - 15,
+              [i * 8, i * 8 + 12],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-            );
-            const y = interpolate(
-              frame - 25,
-              [delay, delay + 18],
-              [20, 0],
-              {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-                easing: Easing.out(Easing.quad),
-              }
             );
 
             return (
@@ -109,21 +86,21 @@ export const QuickMontage: React.FC = () => {
                 key={i}
                 style={{
                   display: "flex",
-                  gap: 16,
+                  gap: 20,
                   alignItems: "center",
-                  padding: "20px 24px",
-                  borderRadius: 12,
+                  padding: "24px 28px",
+                  borderRadius: 14,
                   border: `1px solid ${feat.color}15`,
                   backgroundColor: COLORS.surface,
                   opacity,
-                  transform: `translateY(${y}px)`,
+                  transform: `scale(${s})`,
                 }}
               >
-                <div style={{ fontSize: 32, flexShrink: 0 }}>{feat.icon}</div>
+                <div style={{ fontSize: 40, flexShrink: 0 }}>{feat.icon}</div>
                 <div>
                   <div
                     style={{
-                      fontSize: 16,
+                      fontSize: 26,
                       fontFamily: FONT_SANS,
                       fontWeight: 600,
                       color: feat.color,
@@ -133,7 +110,7 @@ export const QuickMontage: React.FC = () => {
                   </div>
                   <div
                     style={{
-                      fontSize: 13,
+                      fontSize: 20,
                       fontFamily: FONT_SANS,
                       color: COLORS.textDim,
                       marginTop: 4,

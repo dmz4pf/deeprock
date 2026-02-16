@@ -18,23 +18,23 @@ export const AuthMoment: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const fpScale = spring({
-    frame: frame - 30,
+    frame: frame - 10,
     fps,
-    config: { damping: 12, stiffness: 100 },
+    config: { damping: 12, stiffness: 120 },
   });
 
-  const fpOpacity = interpolate(frame, [20, 45], [0, 1], {
+  const fpOpacity = interpolate(frame, [5, 25], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const authGlow = interpolate(frame, [80, 110], [0, 1], {
+  const authGlow = interpolate(frame, [40, 60], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.quad),
   });
 
-  const authTextOpacity = interpolate(frame, [95, 115], [0, 1], {
+  const authTextOpacity = interpolate(frame, [50, 65], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -47,7 +47,7 @@ export const AuthMoment: React.FC = () => {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 32,
+        gap: 36,
       }}
     >
       <div
@@ -55,67 +55,47 @@ export const AuthMoment: React.FC = () => {
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse at center, rgba(99,102,241,0.06), transparent 60%)",
+            "radial-gradient(ellipse at center, rgba(201,160,220,0.06), transparent 60%)",
         }}
       />
 
-      {/* Section label */}
-      <Sequence from={0} durationInFrames={230} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={20} direction="none">
-          <div
-            style={{
-              fontSize: 12,
-              fontFamily: FONT_SANS,
-              fontWeight: 600,
-              color: COLORS.textDim,
-              textTransform: "uppercase",
-              letterSpacing: "0.25em",
-            }}
-          >
-            Onboarding
-          </div>
-        </FadeIn>
-      </Sequence>
-
-      {/* Fingerprint icon */}
       <div
         style={{
-          width: 140,
-          height: 140,
-          borderRadius: 35,
-          background: `linear-gradient(135deg, ${COLORS.accent}15, ${COLORS.accent2}15)`,
-          border: `2px solid ${COLORS.accent}40`,
+          width: 160,
+          height: 160,
+          borderRadius: 36,
+          background: `linear-gradient(135deg, ${COLORS.copper}15, ${COLORS.roseGold}15)`,
+          border: `2px solid ${COLORS.copper}40`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 72,
+          fontSize: 80,
           transform: `scale(${fpScale})`,
           opacity: fpOpacity,
           boxShadow:
             authGlow > 0
-              ? `0 0 ${40 * authGlow}px rgba(212,175,55,${0.3 * authGlow})`
+              ? `0 0 ${50 * authGlow}px ${COLORS.copper}${Math.round(30 * authGlow).toString(16).padStart(2, "0")}`
               : "none",
         }}
       >
         👆
       </div>
 
-      {/* "Authenticated" text */}
       <div
         style={{
           opacity: authTextOpacity,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 12,
+          gap: 14,
         }}
       >
         <div
           style={{
-            fontSize: 32,
+            fontSize: 48,
             fontFamily: FONT_SERIF,
             fontWeight: 700,
-            color: COLORS.gold,
+            color: COLORS.copper,
             letterSpacing: "0.05em",
           }}
         >
@@ -123,7 +103,7 @@ export const AuthMoment: React.FC = () => {
         </div>
         <div
           style={{
-            fontSize: 16,
+            fontSize: 28,
             fontFamily: FONT_SANS,
             color: COLORS.textSecondary,
             textAlign: "center",
@@ -133,15 +113,14 @@ export const AuthMoment: React.FC = () => {
         </div>
       </div>
 
-      {/* Explanation */}
-      <Sequence from={120} durationInFrames={120} layout="none" premountFor={10}>
+      <Sequence from={80} durationInFrames={100} layout="none" premountFor={5}>
         <TextReveal
           text="No seed phrases. No extensions. One biometric scan."
           startFrame={0}
-          framesPerWord={5}
-          fontSize={20}
+          framesPerWord={4}
+          fontSize={30}
           color={COLORS.textSecondary}
-          maxWidth={600}
+          maxWidth={700}
         />
       </Sequence>
     </AbsoluteFill>

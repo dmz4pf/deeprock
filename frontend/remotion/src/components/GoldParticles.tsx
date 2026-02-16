@@ -63,7 +63,7 @@ export const GoldParticles: React.FC<GoldParticlesProps> = ({
               height: p.size,
               borderRadius: "50%",
               backgroundColor: COLORS.gold,
-              boxShadow: `0 0 ${p.size * 2}px ${COLORS.goldDim}`,
+              boxShadow: `0 0 ${p.size * 2}px ${COLORS.gold}60`,
               transform: `translate(${x}px, ${y}px)`,
               opacity,
             }}

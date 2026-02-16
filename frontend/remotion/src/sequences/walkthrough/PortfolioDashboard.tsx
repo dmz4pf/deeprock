@@ -14,14 +14,14 @@ import { COLORS, GRADIENTS } from "../../lib/theme";
 const STATS = [
   { value: 2.47, prefix: "$", suffix: "M", decimals: 2, label: "Total Balance", color: COLORS.textPrimary },
   { value: 7.2, prefix: "", suffix: "%", decimals: 1, label: "30d Return", color: COLORS.green },
-  { value: 12, prefix: "", suffix: "", decimals: 0, label: "Active Positions", color: COLORS.accent },
+  { value: 12, prefix: "", suffix: "", decimals: 0, label: "Active Positions", color: COLORS.copper },
 ];
 
 const BREAKDOWN = [
-  { label: "Treasury", pct: 45, color: "#3B82F6" },
-  { label: "Real Estate", pct: 25, color: "#6366F1" },
-  { label: "Private Credit", pct: 18, color: "#7C3AED" },
-  { label: "Bonds", pct: 12, color: "#14B8A6" },
+  { label: "Treasury", pct: 45, color: COLORS.copper },
+  { label: "Real Estate", pct: 25, color: COLORS.roseGold },
+  { label: "Private Credit", pct: 18, color: COLORS.copperBright },
+  { label: "Bonds", pct: 12, color: COLORS.teal },
 ];
 
 export const PortfolioDashboard: React.FC = () => {
@@ -46,30 +46,11 @@ export const PortfolioDashboard: React.FC = () => {
         }}
       />
 
-      {/* Section label */}
-      <Sequence from={0} durationInFrames={520} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={20} direction="none">
+      <Sequence from={5} durationInFrames={295} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={20}>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: FONT_SANS,
-              fontWeight: 600,
-              color: COLORS.textDim,
-              textTransform: "uppercase",
-              letterSpacing: "0.25em",
-            }}
-          >
-            Portfolio Dashboard
-          </div>
-        </FadeIn>
-      </Sequence>
-
-      {/* Headline */}
-      <Sequence from={10} durationInFrames={510} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
-          <div
-            style={{
-              fontSize: 44,
+              fontSize: 60,
               fontFamily: FONT_SERIF,
               fontWeight: 700,
               color: COLORS.textPrimary,
@@ -81,19 +62,18 @@ export const PortfolioDashboard: React.FC = () => {
         </FadeIn>
       </Sequence>
 
-      {/* Animated stats row */}
-      <Sequence from={40} durationInFrames={480} layout="none" premountFor={15}>
+      <Sequence from={25} durationInFrames={275} layout="none" premountFor={10}>
         <div style={{ display: "flex", gap: 60, justifyContent: "center" }}>
           {STATS.map((stat, i) => (
-            <FadeIn key={i} delay={i * 15} duration={20} direction="up">
+            <FadeIn key={i} delay={i * 10} duration={15} direction="up" distance={20}>
               <AnimatedStat
                 value={stat.value}
                 prefix={stat.prefix}
                 suffix={stat.suffix}
                 decimals={stat.decimals}
-                startFrame={i * 15 + 10}
-                duration={50}
-                fontSize={48}
+                startFrame={i * 10 + 5}
+                duration={35}
+                fontSize={60}
                 color={stat.color}
                 label={stat.label}
               />
@@ -102,13 +82,12 @@ export const PortfolioDashboard: React.FC = () => {
         </div>
       </Sequence>
 
-      {/* Allocation breakdown bars */}
-      <Sequence from={150} durationInFrames={390} layout="none" premountFor={15}>
-        <div style={{ width: 600, display: "flex", flexDirection: "column", gap: 16 }}>
+      <Sequence from={80} durationInFrames={220} layout="none" premountFor={10}>
+        <div style={{ width: 700, display: "flex", flexDirection: "column", gap: 20 }}>
           {BREAKDOWN.map((item, i) => {
             const barWidth = interpolate(
-              frame - 150,
-              [i * 20, i * 20 + 40],
+              frame - 80,
+              [i * 12, i * 12 + 25],
               [0, item.pct],
               {
                 extrapolateLeft: "clamp",
@@ -117,8 +96,8 @@ export const PortfolioDashboard: React.FC = () => {
               }
             );
             const rowOpacity = interpolate(
-              frame - 150,
-              [i * 20, i * 20 + 15],
+              frame - 80,
+              [i * 12, i * 12 + 12],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             );
@@ -129,18 +108,18 @@ export const PortfolioDashboard: React.FC = () => {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    marginBottom: 6,
+                    marginBottom: 8,
                     fontFamily: FONT_SANS,
-                    fontSize: 14,
+                    fontSize: 22,
                   }}
                 >
                   <span style={{ color: COLORS.textSecondary }}>{item.label}</span>
-                  <span style={{ color: item.color }}>{item.pct}%</span>
+                  <span style={{ color: item.color, fontWeight: 600 }}>{item.pct}%</span>
                 </div>
                 <div
                   style={{
-                    height: 8,
-                    borderRadius: 4,
+                    height: 10,
+                    borderRadius: 5,
                     backgroundColor: COLORS.elevated,
                     overflow: "hidden",
                   }}
@@ -149,9 +128,9 @@ export const PortfolioDashboard: React.FC = () => {
                     style={{
                       height: "100%",
                       width: `${barWidth}%`,
-                      borderRadius: 4,
+                      borderRadius: 5,
                       backgroundColor: item.color,
-                      boxShadow: `0 0 8px ${item.color}40`,
+                      boxShadow: `0 0 12px ${item.color}40`,
                     }}
                   />
                 </div>
@@ -161,12 +140,11 @@ export const PortfolioDashboard: React.FC = () => {
         </div>
       </Sequence>
 
-      {/* Tagline */}
-      <Sequence from={280} durationInFrames={260} layout="none" premountFor={10}>
-        <FadeIn delay={0} duration={25} direction="up">
+      <Sequence from={180} durationInFrames={120} layout="none" premountFor={5}>
+        <FadeIn delay={0} duration={18} direction="up" distance={12}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: 28,
               fontFamily: FONT_SANS,
               color: COLORS.textDim,
               textAlign: "center",
