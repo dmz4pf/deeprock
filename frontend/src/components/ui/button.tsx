@@ -17,9 +17,9 @@ const buttonVariants = cva(
         ],
         glow: [
           "text-white",
-          "bg-gradient-to-r from-[#C4956A] via-[#E8B4B8] to-[#C9A0DC]",
-          "shadow-[0_0_24px_rgba(201,160,220,0.3)]",
-          "hover:shadow-[0_0_35px_rgba(201,160,220,0.5)]",
+          "bg-gradient-to-r from-[#C4956A] via-[#E8B4B8] to-[#C4A265]",
+          "shadow-[0_0_24px_rgba(196,162,101,0.3)]",
+          "hover:shadow-[0_0_35px_rgba(196,162,101,0.5)]",
           "hover:scale-[1.02]",
         ],
         destructive: [

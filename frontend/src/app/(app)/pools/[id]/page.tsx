@@ -434,13 +434,13 @@ function PoolDetailContent({ pool }: { pool: Pool }) {
                   padding: "10px 28px",
                   borderRadius: 10,
                   border: "none",
-                  background: "linear-gradient(135deg, #C4956A, #E8B4B8, #C9A0DC)",
+                  background: "linear-gradient(135deg, #C4956A, #E8B4B8, #C4A265)",
                   color: "#FFF",
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
-                  boxShadow: "0 0 24px rgba(201,160,220,0.3)",
+                  boxShadow: "0 0 24px rgba(196,162,101,0.3)",
                 }}
               >
                 Invest Now

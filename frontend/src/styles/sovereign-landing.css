@@ -17,10 +17,10 @@
   scroll-behavior: smooth;
   background-color: #080510;
   background-image:
-    radial-gradient(ellipse 130% 90% at 15% -10%, rgba(201, 160, 220, 0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 130% 90% at 15% -10%, rgba(196, 162, 101, 0.30) 0%, transparent 55%),
     radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse 120% 70% at 50% 115%, rgba(124, 58, 237, 0.28) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 90% at 95% 55%, rgba(201, 160, 220, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse 120% 70% at 50% 115%, rgba(232, 180, 184, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 90% at 95% 55%, rgba(196, 162, 101, 0.22) 0%, transparent 50%),
     radial-gradient(ellipse 80% 60% at 40% 50%, rgba(232, 180, 184, 0.12) 0%, transparent 45%);
   background-attachment: fixed;
   color: var(--sv-cream);
@@ -57,11 +57,11 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 130% 90% at var(--gx1) var(--gy1), rgba(201, 160, 220, 0.30) 0%, transparent 55%),
-    radial-gradient(ellipse 110% 80% at var(--gx2) var(--gy2), rgba(232, 180, 184, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse 120% 70% at var(--gx3) var(--gy3), rgba(124, 58, 237, 0.28) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 90% at var(--gx4) var(--gy4), rgba(201, 160, 220, 0.22) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 60% at var(--gx5) var(--gy5), rgba(232, 180, 184, 0.12) 0%, transparent 45%);
+    radial-gradient(ellipse 130% 90% at var(--gx1) var(--gy1), rgba(196, 162, 101, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 110% 80% at var(--gx2) var(--gy2), rgba(232, 180, 184, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse 120% 70% at var(--gx3) var(--gy3), rgba(196, 162, 101, 0.24) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 90% at var(--gx4) var(--gy4), rgba(232, 180, 184, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at var(--gx5) var(--gy5), rgba(212, 175, 110, 0.12) 0%, transparent 45%);
   animation: heroGradientDrift 20s ease-in-out infinite;
 }
 

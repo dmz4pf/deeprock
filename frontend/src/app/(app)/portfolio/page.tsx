@@ -25,7 +25,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 const ASSET_CLASS_COLORS: Record<string, string> = {
   treasury: "#E8B4B8",
-  "real-estate": "#C9A0DC",
+  "real-estate": "#C4A265",
   "private-credit": "#F5E6D3",
   "corporate-bonds": "#B8A99A",
   commodities: "#6FCF97",

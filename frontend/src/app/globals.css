@@ -45,7 +45,7 @@
   /* ─── Fusion B Colors ─── */
   --color-forge-copper: #E8B4B8;
   --color-forge-copper-bright: #F0C8CC;
-  --color-forge-rose-gold: #C9A0DC;
+  --color-forge-rose-gold: #C4A265;
   --color-forge-violet: #6FCF97;
   --color-forge-teal: #6FCF97;
   --color-forge-bronze: #5A5347;
@@ -82,7 +82,7 @@
   --input: rgba(232,180,184,0.05);
   --ring: #E8B4B8;
   --chart-1: #E8B4B8;
-  --chart-2: #C9A0DC;
+  --chart-2: #C4A265;
   --chart-3: #6FCF97;
   --chart-4: #F5E6D3;
   --chart-5: #B8A99A;
@@ -102,7 +102,7 @@
   --forge-surface-elevated: #1C1822;
   --forge-copper: #E8B4B8;
   --forge-copper-bright: #F0C8CC;
-  --forge-rose-gold: #C9A0DC;
+  --forge-rose-gold: #C4A265;
   --forge-violet: #6FCF97;
   --forge-teal: #6FCF97;
   --forge-bronze: #5A5347;
@@ -110,15 +110,15 @@
   --forge-text-secondary: #B8A99A;
   --forge-text-dim: #5A5347;
   --forge-border: rgba(232,180,184,0.08);
-  --forge-border-hover: rgba(201,160,220,0.3);
+  --forge-border-hover: rgba(196,162,101,0.3);
   --forge-success: #6FCF97;
   --forge-danger: #EB5757;
   --forge-warning: #F59E0B;
 
   /* Forge gradients */
-  --forge-iridescent: linear-gradient(135deg, #E8B4B8, #C9A0DC, #F0C8CC, #E8B4B8);
-  --forge-iridescent-text: linear-gradient(135deg, #E8B4B8 0%, #C9A0DC 30%, #F0C8CC 55%, #D4A853 80%, #E8B4B8 100%);
-  --forge-metal: linear-gradient(135deg, #E8B4B8, #F0C8CC, #C9A0DC, #5A5347, #E8B4B8);
+  --forge-iridescent: linear-gradient(135deg, #E8B4B8, #C4A265, #F0C8CC, #E8B4B8);
+  --forge-iridescent-text: linear-gradient(135deg, #E8B4B8 0%, #C4A265 30%, #F0C8CC 55%, #D4A853 80%, #E8B4B8 100%);
+  --forge-metal: linear-gradient(135deg, #E8B4B8, #F0C8CC, #C4A265, #5A5347, #E8B4B8);
 
   /* Forge animation tokens */
   --forge-stagger: 70ms;
@@ -193,7 +193,7 @@
   --input: rgba(232,180,184,0.05);
   --ring: #E8B4B8;
   --chart-1: #E8B4B8;
-  --chart-2: #C9A0DC;
+  --chart-2: #C4A265;
   --chart-3: #6FCF97;
   --chart-4: #F5E6D3;
   --chart-5: #B8A99A;
@@ -216,10 +216,10 @@
     @apply text-foreground font-sans text-[15px];
     background-color: #080510;
     background-image:
-      radial-gradient(ellipse 130% 90% at 15% -10%, rgba(201, 160, 220, 0.38) 0%, transparent 55%),
+      radial-gradient(ellipse 130% 90% at 15% -10%, rgba(196, 162, 101, 0.38) 0%, transparent 55%),
       radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.32) 0%, transparent 50%),
-      radial-gradient(ellipse 120% 70% at 50% 115%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
-      radial-gradient(ellipse 100% 90% at 95% 55%, rgba(201, 160, 220, 0.28) 0%, transparent 50%),
+      radial-gradient(ellipse 120% 70% at 50% 115%, rgba(232, 180, 184, 0.35) 0%, transparent 50%),
+      radial-gradient(ellipse 100% 90% at 95% 55%, rgba(196, 162, 101, 0.28) 0%, transparent 50%),
       radial-gradient(ellipse 80% 60% at 40% 50%, rgba(232, 180, 184, 0.16) 0%, transparent 45%);
     background-attachment: fixed;
     margin: 0;
@@ -237,8 +237,8 @@
     0 0 0 1px rgba(232, 180, 184, 0.08),
     0 4px 20px rgba(0, 0, 0, 0.5),
     0 20px 60px rgba(0, 0, 0, 0.5),
-    0 0 100px rgba(201, 160, 220, 0.06),
-    0 0 200px rgba(124, 58, 237, 0.04);
+    0 0 100px rgba(196, 162, 101, 0.06),
+    0 0 200px rgba(232, 180, 184, 0.04);
 }
 
 /* Shell inner glow — iridescent top edge */
@@ -252,7 +252,7 @@
   background: linear-gradient(90deg,
     transparent 0%,
     rgba(232, 180, 184, 0.25) 20%,
-    rgba(201, 160, 220, 0.20) 50%,
+    rgba(196, 162, 101, 0.20) 50%,
     rgba(232, 180, 184, 0.25) 80%,
     transparent 100%
   );
@@ -336,7 +336,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* Border color cycling — rose → lavender → emerald → champagne */
 @keyframes forgeBorderCycle {
   0% { border-color: rgba(232,180,184,0.15); box-shadow: 0 0 20px rgba(232,180,184,0.04); }
-  25% { border-color: rgba(201,160,220,0.15); box-shadow: 0 0 20px rgba(201,160,220,0.04); }
+  25% { border-color: rgba(196,162,101,0.15); box-shadow: 0 0 20px rgba(196,162,101,0.04); }
   50% { border-color: rgba(111,207,151,0.12); box-shadow: 0 0 20px rgba(111,207,151,0.04); }
   75% { border-color: rgba(245,230,211,0.12); box-shadow: 0 0 20px rgba(245,230,211,0.04); }
   100% { border-color: rgba(232,180,184,0.15); box-shadow: 0 0 20px rgba(232,180,184,0.04); }
@@ -373,7 +373,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* Accent color cycling — rose → lavender → emerald → champagne */
 @keyframes forgeAccentCycle {
   0% { color: #E8B4B8; }
-  25% { color: #C9A0DC; }
+  25% { color: #C4A265; }
   50% { color: #6FCF97; }
   75% { color: #F5E6D3; }
   100% { color: #E8B4B8; }
@@ -382,10 +382,10 @@ input[type=number] { -moz-appearance: textfield; }
 /* Hero value glow breathing */
 @keyframes forgeHeroGlow {
   0%, 100% {
-    filter: drop-shadow(0 0 12px rgba(232,180,184,0.1)) drop-shadow(0 0 4px rgba(201,160,220,0.05));
+    filter: drop-shadow(0 0 12px rgba(232,180,184,0.1)) drop-shadow(0 0 4px rgba(196,162,101,0.05));
   }
   50% {
-    filter: drop-shadow(0 0 24px rgba(232,180,184,0.2)) drop-shadow(0 0 8px rgba(201,160,220,0.1));
+    filter: drop-shadow(0 0 24px rgba(232,180,184,0.2)) drop-shadow(0 0 8px rgba(196,162,101,0.1));
   }
 }
 
@@ -527,7 +527,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* ─── Iridescent Divider ─── */
 .forge-divider {
   height: 1px;
-  background: linear-gradient(135deg, #E8B4B8, #C9A0DC, #F0C8CC, #E8B4B8);
+  background: linear-gradient(135deg, #E8B4B8, #C4A265, #F0C8CC, #E8B4B8);
   background-size: 300% 100%;
   animation: forgeGradientShift 10s linear infinite;
   opacity: 0.25;
@@ -563,7 +563,7 @@ input[type=number] { -moz-appearance: textfield; }
     45deg,
     transparent 30%,
     rgba(232,180,184,0.06) 40%,
-    rgba(201,160,220,0.08) 45%,
+    rgba(196,162,101,0.08) 45%,
     rgba(111,207,151,0.06) 50%,
     rgba(245,230,211,0.08) 55%,
     rgba(232,180,184,0.06) 60%,
@@ -580,10 +580,10 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 .forge-shimmer:hover {
-  border-color: rgba(201,160,220,0.25) !important;
+  border-color: rgba(196,162,101,0.25) !important;
   box-shadow:
     0 16px 48px rgba(232,180,184,0.06),
-    0 4px 20px rgba(201,160,220,0.04) !important;
+    0 4px 20px rgba(196,162,101,0.04) !important;
   transform: translateY(-2px);
 }
 
@@ -592,7 +592,7 @@ input[type=number] { -moz-appearance: textfield; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .forge-iridescent-text {
-  background: linear-gradient(135deg, #E8B4B8 0%, #C9A0DC 30%, #F0C8CC 55%, #D4A853 80%, #E8B4B8 100%);
+  background: linear-gradient(135deg, #E8B4B8 0%, #C4A265 30%, #F0C8CC 55%, #D4A853 80%, #E8B4B8 100%);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -609,7 +609,7 @@ input[type=number] { -moz-appearance: textfield; }
   text-shadow: 0 0 10px rgba(232,180,184,0.5), 0 0 30px rgba(232,180,184,0.25);
 }
 .forge-glow-rose {
-  text-shadow: 0 0 10px rgba(201,160,220,0.5), 0 0 30px rgba(201,160,220,0.25);
+  text-shadow: 0 0 10px rgba(196,162,101,0.5), 0 0 30px rgba(196,162,101,0.25);
 }
 .forge-glow-violet {
   text-shadow: 0 0 10px rgba(111,207,151,0.5), 0 0 30px rgba(111,207,151,0.25);
@@ -813,11 +813,11 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 .glass-interactive:hover {
-  border-color: rgba(201,160,220,0.25);
+  border-color: rgba(196,162,101,0.25);
   transform: translateY(-2px);
   box-shadow:
     0 16px 48px rgba(232,180,184,0.06),
-    0 4px 20px rgba(201,160,220,0.04);
+    0 4px 20px rgba(196,162,101,0.04);
 }
 
 .glass-interactive:active {
@@ -833,7 +833,7 @@ input[type=number] { -moz-appearance: textfield; }
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(135deg, #E8B4B8, #C9A0DC, #F0C8CC, #E8B4B8);
+  background: linear-gradient(135deg, #E8B4B8, #C4A265, #F0C8CC, #E8B4B8);
   background-size: 300% 100%;
   animation: forgeGradientShift 10s linear infinite;
   opacity: 0.3;
@@ -851,7 +851,7 @@ input[type=number] { -moz-appearance: textfield; }
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(135deg, #E8B4B8, #C9A0DC, #F0C8CC, #E8B4B8);
+  background: linear-gradient(135deg, #E8B4B8, #C4A265, #F0C8CC, #E8B4B8);
   background-size: 300% 100%;
   animation: forgeGradientShift 10s linear infinite;
   opacity: 0.35;
@@ -865,7 +865,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 .glass-hover:hover {
-  border-color: rgba(201,160,220,0.25);
+  border-color: rgba(196,162,101,0.25);
   transform: translateY(-2px);
   box-shadow: 0 16px 48px rgba(232,180,184,0.06);
 }
@@ -942,7 +942,7 @@ input[type=number] { -moz-appearance: textfield; }
   text-shadow: 0 0 10px rgba(111,207,151,0.5), 0 0 30px rgba(111,207,151,0.25);
 }
 .glow-text-purple {
-  text-shadow: 0 0 10px rgba(201,160,220,0.5), 0 0 30px rgba(201,160,220,0.25);
+  text-shadow: 0 0 10px rgba(196,162,101,0.5), 0 0 30px rgba(196,162,101,0.25);
 }
 .glow-text-orange {
   text-shadow: 0 0 10px rgba(245,158,11,0.5), 0 0 30px rgba(245,158,11,0.25);
@@ -962,7 +962,7 @@ input[type=number] { -moz-appearance: textfield; }
   box-shadow: 0 0 20px rgba(111,207,151,0.12), 0 0 40px rgba(111,207,151,0.06);
 }
 .glow-box-purple {
-  box-shadow: 0 0 20px rgba(201,160,220,0.12), 0 0 40px rgba(201,160,220,0.06);
+  box-shadow: 0 0 20px rgba(196,162,101,0.12), 0 0 40px rgba(196,162,101,0.06);
 }
 
 .bg-deep-bg {
@@ -1123,7 +1123,7 @@ input[type=number] { -moz-appearance: textfield; }
 
 /* Luxe card — gradient bg + soft shadow */
 .fb-luxe-card {
-  background: linear-gradient(135deg, rgba(232,180,184,0.04) 0%, rgba(201,160,220,0.02) 50%, rgba(21,18,26,1) 100%);
+  background: linear-gradient(135deg, rgba(232,180,184,0.04) 0%, rgba(196,162,101,0.02) 50%, rgba(21,18,26,1) 100%);
   border: 1px solid rgba(232,180,184,0.08);
   border-radius: 12px;
   position: relative;
@@ -1160,7 +1160,7 @@ input[type=number] { -moz-appearance: textfield; }
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: conic-gradient(from var(--fb-angle, 0deg), #E8B4B8, #C9A0DC, #6FCF97, #F5E6D3, #E8B4B8);
+  background: conic-gradient(from var(--fb-angle, 0deg), #E8B4B8, #C4A265, #6FCF97, #F5E6D3, #E8B4B8);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

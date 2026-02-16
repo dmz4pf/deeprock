@@ -11,8 +11,8 @@ type GlowColor = "blue" | "cyan" | "purple" | "green" | "orange";
 
 const glowConfig: Record<GlowColor, { rgb: string; text: string }> = {
   blue: { rgb: "205,127,50", text: "#E8B4B8" },
-  cyan: { rgb: "183,110,121", text: "#C9A0DC" },
-  purple: { rgb: "124,58,237", text: "#6FCF97" },
+  cyan: { rgb: "183,110,121", text: "#C4A265" },
+  purple: { rgb: "232,180,184", text: "#6FCF97" },
   green: { rgb: "20,184,166", text: "#6FCF97" },
   orange: { rgb: "139,105,20", text: "#5A5347" },
 };
@@ -91,7 +91,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           className="absolute top-0 left-[5%] right-[5%] h-px pointer-events-none"
           style={{
             background:
-              "linear-gradient(135deg, #E8B4B8, #C9A0DC, #6FCF97, #6FCF97, #E8B4B8)",
+              "linear-gradient(135deg, #E8B4B8, #C4A265, #6FCF97, #6FCF97, #E8B4B8)",
             backgroundSize: "300% 100%",
             animation: "forgeGradientShift 10s linear infinite",
           }}

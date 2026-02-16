@@ -17,7 +17,7 @@ const Card = React.forwardRef<
       "rounded-xl border border-[rgba(232,180,184,0.08)] bg-[var(--forge-surface)] text-[#F0EBE0]",
       "shadow-[0_0_20px_rgba(232,180,184,0.04)]",
       "transition-all duration-300",
-      "hover:border-[rgba(201,160,220,0.2)] hover:shadow-[0_0_30px_rgba(232,180,184,0.08)]",
+      "hover:border-[rgba(196,162,101,0.2)] hover:shadow-[0_0_30px_rgba(232,180,184,0.08)]",
       className
     )}
     {...props}

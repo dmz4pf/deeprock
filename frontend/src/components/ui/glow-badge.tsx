@@ -28,9 +28,9 @@ const glowBadgeVariants = cva(
           "hover:shadow-[0_0_15px_rgba(235,87,87,0.3)]",
         ],
         cyan: [
-          "bg-[rgba(201,160,220,0.1)] text-[#C9A0DC] border border-[rgba(201,160,220,0.2)]",
-          "shadow-[0_0_10px_rgba(201,160,220,0.2)]",
-          "hover:shadow-[0_0_15px_rgba(201,160,220,0.3)]",
+          "bg-[rgba(196,162,101,0.1)] text-[#C4A265] border border-[rgba(196,162,101,0.2)]",
+          "shadow-[0_0_10px_rgba(196,162,101,0.2)]",
+          "hover:shadow-[0_0_15px_rgba(196,162,101,0.3)]",
         ],
         purple: [
           "bg-[rgba(111,207,151,0.1)] text-[#6FCF97] border border-[rgba(111,207,151,0.2)]",
@@ -59,7 +59,7 @@ const GlowBadge = React.forwardRef<HTMLSpanElement, GlowBadgeProps>(
       success: "bg-[#6FCF97]",
       warning: "bg-[#F59E0B]",
       danger: "bg-[#EB5757]",
-      cyan: "bg-[#C9A0DC]",
+      cyan: "bg-[#C4A265]",
       purple: "bg-[#6FCF97]",
     };
 

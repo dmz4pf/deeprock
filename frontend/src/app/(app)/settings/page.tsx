@@ -74,7 +74,7 @@ function IdentityCard({ user }: { user: User }) {
         <div
           className="w-[68px] h-[68px] rounded-full p-[3px] mb-4"
           style={{
-            background: "linear-gradient(135deg, #E8B4B8, #C9A0DC, #6FCF97, #F5E6D3, #E8B4B8)",
+            background: "linear-gradient(135deg, #E8B4B8, #C4A265, #6FCF97, #F5E6D3, #E8B4B8)",
             animation: "iridescent-rotate 6s linear infinite",
           }}
         >

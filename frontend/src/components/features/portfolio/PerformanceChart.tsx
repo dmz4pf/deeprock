@@ -124,7 +124,7 @@ export function PerformanceChart({ history, className }: PerformanceChartProps) 
                 {isPositive ? (
                   <>
                     <stop offset="0%" stopColor="rgba(232,180,184,0.18)" />
-                    <stop offset="35%" stopColor="rgba(201,160,220,0.08)" />
+                    <stop offset="35%" stopColor="rgba(196,162,101,0.08)" />
                     <stop offset="65%" stopColor="rgba(111,207,151,0.04)" />
                     <stop offset="100%" stopColor="transparent" stopOpacity="0" />
                   </>

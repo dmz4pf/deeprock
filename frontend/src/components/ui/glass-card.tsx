@@ -17,11 +17,11 @@ const glowColorConfig: Record<GlowColor, { rgb: string; border: string; shadow: 
   },
   cyan: {
     rgb: "183,110,121",
-    border: "rgba(201,160,220,0.25)",
-    shadow: "0 0 35px rgba(201,160,220,0.18)",
+    border: "rgba(196,162,101,0.25)",
+    shadow: "0 0 35px rgba(196,162,101,0.18)",
   },
   purple: {
-    rgb: "124,58,237",
+    rgb: "232,180,184",
     border: "rgba(111,207,151,0.25)",
     shadow: "0 0 35px rgba(111,207,151,0.18)",
   },
@@ -207,7 +207,7 @@ const GlassPanel = React.forwardRef<HTMLDivElement, GlassPanelProps>(
           className="absolute top-0 left-[5%] right-[5%] h-px pointer-events-none"
           style={{
             background:
-              "linear-gradient(135deg, #E8B4B8, #C9A0DC, #6FCF97, #6FCF97, #E8B4B8)",
+              "linear-gradient(135deg, #E8B4B8, #C4A265, #6FCF97, #6FCF97, #E8B4B8)",
             backgroundSize: "300% 100%",
             animation: "forgeGradientShift 10s linear infinite",
           }}
@@ -387,7 +387,7 @@ const GlassDivider = React.forwardRef<HTMLDivElement, GlassDividerProps>(
         )}
         style={{
           background: withGlow
-            ? "linear-gradient(90deg, transparent, rgba(232,180,184,0.2), rgba(201,160,220,0.12), rgba(232,180,184,0.2), transparent)"
+            ? "linear-gradient(90deg, transparent, rgba(232,180,184,0.2), rgba(196,162,101,0.12), rgba(232,180,184,0.2), transparent)"
             : "linear-gradient(90deg, transparent, rgba(232,180,184,0.08), transparent)",
         }}
         {...props}

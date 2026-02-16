@@ -300,7 +300,7 @@ function LoginPageInner() {
             ? "linear-gradient(135deg, #EB5757, #8B3A30)"
             : passkeyState === "success"
               ? "linear-gradient(135deg, #D4A853, #CD7F32)"
-              : "linear-gradient(135deg, rgba(232,180,184,0.6) 0%, rgba(201,160,220,0.5) 40%, rgba(212,168,83,0.55) 70%, rgba(205,127,50,0.6) 100%)",
+              : "linear-gradient(135deg, rgba(232,180,184,0.6) 0%, rgba(196,162,101,0.5) 40%, rgba(212,168,83,0.55) 70%, rgba(205,127,50,0.6) 100%)",
           backgroundSize: "300% 100%",
           animationName: passkeyState === "idle" ? "forgeGradientShift" : "none",
           animationDuration: "8s",
@@ -369,7 +369,7 @@ function LoginPageInner() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[
           { id: "email", icon: Mail, label: "Email", desc: "OTP verification", onClick: handleSelectEmail, accent: "#E8B4B8" },
-          { id: "google", icon: Chrome, label: "Google", desc: "Quick sign-in", onClick: handleSelectGoogle, accent: "#C9A0DC" },
+          { id: "google", icon: Chrome, label: "Google", desc: "Quick sign-in", onClick: handleSelectGoogle, accent: "#C4A265" },
           { id: "wallet", icon: Wallet, label: "MetaMask", desc: "Web3 wallet", onClick: handleSelectWallet, accent: "#D4A853" },
         ].map((method) => (
           <button

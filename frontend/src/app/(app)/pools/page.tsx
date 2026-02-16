@@ -151,8 +151,8 @@ function CategoryOverviewCard({
         }`}
         style={{
           background: featured
-            ? `linear-gradient(135deg, rgba(${rgb}, 0.08) 0%, rgba(201,160,220,0.04) 40%, rgba(124,58,237,0.06) 100%)`
-            : `linear-gradient(135deg, rgba(201,160,220,0.06) 0%, rgba(232,180,184,0.04) 40%, rgba(124,58,237,0.05) 100%)`,
+            ? `linear-gradient(135deg, rgba(${rgb}, 0.08) 0%, rgba(196,162,101,0.04) 40%, rgba(232,180,184,0.06) 100%)`
+            : `linear-gradient(135deg, rgba(196,162,101,0.06) 0%, rgba(232,180,184,0.04) 40%, rgba(232,180,184,0.05) 100%)`,
           border: `1px solid rgba(${rgb}, ${featured ? "0.18" : "0.12"})`,
         }}
       >

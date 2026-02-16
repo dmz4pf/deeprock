@@ -40,7 +40,7 @@ export const ASSET_CLASSES: AssetClassConfig[] = [
     icon: Building2,
     color: "text-forge-rose-gold",
     bgColor: "bg-forge-rose-gold/10",
-    glowRgb: "201,160,220",
+    glowRgb: "196,162,101",
     href: "/pools/real-estate",
   },
   {
