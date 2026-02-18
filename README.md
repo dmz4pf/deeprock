@@ -15,6 +15,16 @@
 
 ---
 
+## Screenshots
+
+| Login | Investment Pools |
+|-------|-----------------|
+| ![Login](docs/images/login.png) | ![Pools](docs/images/pools.png) |
+
+![Portfolio](docs/images/portfolio.png)
+
+---
+
 ## What Is DeepRock?
 
 DeepRock bridges institutional-grade investments and DeFi. Investors deposit USDC into on-chain pools backed by tokenized real-world assets — treasury bills, private credit facilities, and real estate — with NAV-based pricing, biometric authentication, and gasless transactions via ERC-4337 account abstraction.
