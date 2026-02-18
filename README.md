@@ -102,7 +102,7 @@ Click any pool to see the APY, TVL, lock period, risk rating, and minimum deposi
 1. Open a pool and click **Invest**
 2. Enter the USDC amount
 3. Confirm with your passkey (biometric) or wallet
-4. The transaction is submitted via the ERC-4337 Paymaster. Gas is covered — you only spend USDC
+4. The transaction is submitted via the ERC-4337 Paymaster. Gas is covered. You only spend USDC
 
 ---
 
