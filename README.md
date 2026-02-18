@@ -21,7 +21,9 @@ Tokenized real-world assets: treasury bills, private credit, and real estate on-
 |-------|-----------------|
 | ![Login](docs/images/login.png) | ![Pools](docs/images/pools.png) |
 
-![Portfolio](docs/images/portfolio.png)
+| Portfolio | Pool Detail |
+|-----------|------------|
+| ![Portfolio](docs/images/portfolio.png) | ![Pool Detail](docs/images/pool-detail.png) |
 
 ---
 
