@@ -29,7 +29,7 @@ Tokenized real-world assets: treasury bills, private credit, and real estate on-
 
 ## What Is DeepRock?
 
-DeepRock lets investors put USDC into on-chain pools backed by real-world assets. Pools are NAV-priced daily to reflect actual yield. No seed phrases — wallets are created with a passkey (biometric). Gas is covered by an ERC-4337 Paymaster so investors only ever deal with USDC.
+DeepRock lets investors put USDC into on-chain pools backed by real-world assets. Pools are NAV-priced daily to reflect actual yield. No seed phrases. Wallets are created with a passkey (biometric). Gas is covered by an ERC-4337 Paymaster so investors only ever deal with USDC.
 
 ---
 
@@ -54,6 +54,72 @@ DeepRock lets investors put USDC into on-chain pools backed by real-world assets
 | Auth | WebAuthn / Passkeys (SimpleWebAuthn) |
 | Backend | Node.js, TypeScript, Relayer, Indexer |
 | State | Zustand, viem |
+
+---
+
+## Testing the App
+
+The app runs on Avalanche Fuji testnet. No real funds needed.
+
+---
+
+### Step 1: Create an account
+
+Go to [deeprock-app.vercel.app](https://deeprock-app.vercel.app) and click **Launch App**.
+
+You have three sign-in options:
+
+**Passkey (recommended)**: Click "Sign in with Passkey". Your device creates a biometric credential (Face ID, fingerprint, or PIN). No password, no seed phrase. A smart wallet is generated and linked to your passkey automatically.
+
+**Google**: Click "Google" for a quick sign-in. A smart wallet is created and linked to your Google account.
+
+**MetaMask**: Click "MetaMask" and connect your wallet if you already have one.
+
+---
+
+### Step 2: Get test USDC
+
+Once logged in, go to the **Portfolio** page. Click the **"Get Test USDC"** button. This mints test USDC directly to your smart wallet. No faucet needed.
+
+---
+
+### Step 3: Browse the pools
+
+Click **Pools** in the sidebar. You will see five categories:
+
+- **Treasury Bills**: Short-duration government-backed instruments, lower risk, lower APY
+- **Real Estate**: Tokenized property exposure
+- **Private Credit**: Higher yield, longer lock periods
+- **Corporate Bonds**: Investment-grade debt instruments
+- **Commodities**: Commodity-backed asset pools
+
+Click any pool to see the APY, TVL, lock period, risk rating, and minimum deposit.
+
+---
+
+### Step 4: Make an investment
+
+1. Open a pool and click **Invest**
+2. Enter the USDC amount
+3. Confirm with your passkey (biometric) or wallet
+4. The transaction is submitted via the ERC-4337 Paymaster. Gas is covered — you only spend USDC
+
+---
+
+### Step 5: Track your portfolio
+
+Go to **Portfolio** to see:
+
+- Total balance and 30-day performance
+- Active investments with current value and APY
+- Allocation breakdown by pool category
+- Portfolio health score
+
+---
+
+### Step 6: Withdraw
+
+Open any active investment from the portfolio and click **Withdraw**. If the pool has a lock period, withdrawals are available after it expires. Flexible pools allow withdrawal any time.
 
 ---
 
