@@ -1,6 +1,6 @@
 # DeepRock — Institutional RWA Platform on Avalanche
 
-> Tokenized real-world assets — treasury bills, private credit, and real estate — accessible on-chain.
+Tokenized real-world assets: treasury bills, private credit, and real estate on-chain.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Avalanche](https://img.shields.io/badge/Avalanche-Fuji-E84142)](https://www.avax.network/)
@@ -11,7 +11,7 @@
 
 ## Live Demo
 
-**[→ deeprock-app.vercel.app](https://deeprock-app.vercel.app)**
+**[deeprock-app.vercel.app](https://deeprock-app.vercel.app)**
 
 ---
 
@@ -27,18 +27,18 @@
 
 ## What Is DeepRock?
 
-DeepRock bridges institutional-grade investments and DeFi. Investors deposit USDC into on-chain pools backed by tokenized real-world assets — treasury bills, private credit facilities, and real estate — with NAV-based pricing, biometric authentication, and gasless transactions via ERC-4337 account abstraction.
+DeepRock lets investors put USDC into on-chain pools backed by real-world assets. Pools are NAV-priced daily to reflect actual yield. No seed phrases — wallets are created with a passkey (biometric). Gas is covered by an ERC-4337 Paymaster so investors only ever deal with USDC.
 
 ---
 
 ## Features
 
-- **RWA Investment Pools** — USDC-denominated pools with daily NAV updates reflecting real yield
-- **Biometric Auth** — Passkey (WebAuthn/P256) wallet creation — no seed phrases
-- **Gasless Transactions** — ERC-4337 Paymaster covers gas; investors only need USDC
-- **Portfolio Dashboard** — Track positions, yields, and transaction history
-- **Document Vault** — On-chain document registry for compliance materials
-- **Smart Account Wallets** — P256 smart wallets with biometric signing
+- **RWA investment pools**: USDC deposits with daily NAV updates that reflect real yield
+- **Biometric auth**: Passkey (WebAuthn/P256) wallet creation, no seed phrases
+- **Gasless transactions**: ERC-4337 Paymaster covers gas so investors only need USDC
+- **Portfolio dashboard**: Track positions, yields, and transaction history
+- **Document vault**: On-chain document registry for compliance materials
+- **Smart account wallets**: P256 smart wallets with biometric signing
 
 ---
 
@@ -71,20 +71,20 @@ DeepRock bridges institutional-grade investments and DeFi. Investors deposit USD
 
 ```
 Investor
-    │
-    ▼
-Passkey Authentication (WebAuthn)
-    │
-    ▼
-P256 Smart Wallet (ERC-4337)
-    │
-    ├── Deposit USDC → RWAPool
-    │       │
-    │       ▼
-    │   NAV-priced pool shares issued
-    │   (backed by treasury bills / private credit / real estate)
-    │
-    └── Withdraw → USDC returned at current NAV
+    |
+    v
+Passkey authentication (WebAuthn)
+    |
+    v
+P256 smart wallet (ERC-4337)
+    |
+    +-- Deposit USDC -> RWAPool
+    |       |
+    |       v
+    |   NAV-priced pool shares issued
+    |   (backed by treasury bills / private credit / real estate)
+    |
+    +-- Withdraw -> USDC returned at current NAV
 
 RWAPaymaster covers all gas costs
 ```
@@ -116,11 +116,11 @@ npm run contracts:compile
 deeprock/
 ├── frontend/          # Next.js app
 │   ├── src/app/
-│   │   ├── (app)/     # Authenticated routes
-│   │   │   ├── pools/       # Browse & invest in RWA pools
+│   │   ├── (app)/
+│   │   │   ├── pools/       # Browse and invest in RWA pools
 │   │   │   ├── portfolio/   # Track your positions
 │   │   │   └── documents/   # Compliance documents
-│   │   └── (auth)/    # Passkey login / registration
+│   │   └── (auth)/          # Passkey login / registration
 ├── backend/           # Node.js relayer + indexer
 │   └── src/
 │       ├── routes/    # REST API (pools, portfolio, auth, relayer)
