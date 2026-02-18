@@ -96,7 +96,7 @@ RWAPaymaster covers all gas costs
 ## Running Locally
 
 ```bash
-git clone https://github.com/dmz4pf/deeprock.git
+git clone https://github.com/dmustapha/deeprock.git
 cd deeprock
 npm install
 
