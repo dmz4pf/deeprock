@@ -49,9 +49,9 @@
   --color-forge-violet: #6FCF97;
   --color-forge-teal: #6FCF97;
   --color-forge-bronze: #5A5347;
-  --color-forge-bg: #0E0B10;
-  --color-forge-surface: #15121A;
-  --color-forge-surface-elevated: #1C1822;
+  --color-forge-bg: #0E0C0A;
+  --color-forge-surface: #14120E;
+  --color-forge-surface-elevated: #1B1915;
   --color-forge-text-1: #F0EBE0;
   --color-forge-text-2: #B8A99A;
   --color-forge-text-3: #5A5347;
@@ -62,14 +62,14 @@
 
 /* ─── Dark-only app ─── */
 :root {
-  --background: #0E0B10;
+  --background: #0E0C0A;
   --foreground: #F0EBE0;
-  --card: #15121A;
+  --card: #14120E;
   --card-foreground: #F0EBE0;
-  --popover: #15121A;
+  --popover: #14120E;
   --popover-foreground: #F0EBE0;
   --primary: #E8B4B8;
-  --primary-foreground: #0E0B10;
+  --primary-foreground: #0E0C0A;
   --secondary: rgba(232,180,184,0.04);
   --secondary-foreground: #B8A99A;
   --muted: rgba(232,180,184,0.03);
@@ -87,19 +87,19 @@
   --chart-4: #F5E6D3;
   --chart-5: #B8A99A;
   --radius: 0.75rem;
-  --sidebar: #0E0B10;
+  --sidebar: #0E0C0A;
   --sidebar-foreground: #F0EBE0;
   --sidebar-primary: #E8B4B8;
-  --sidebar-primary-foreground: #0E0B10;
+  --sidebar-primary-foreground: #0E0C0A;
   --sidebar-accent: rgba(232,180,184,0.08);
   --sidebar-accent-foreground: #F0C8CC;
   --sidebar-border: rgba(232,180,184,0.06);
   --sidebar-ring: #E8B4B8;
 
   /* Forge design system tokens */
-  --forge-bg: #0E0B10;
-  --forge-surface: #15121A;
-  --forge-surface-elevated: #1C1822;
+  --forge-bg: #0E0C0A;
+  --forge-surface: #14120E;
+  --forge-surface-elevated: #1B1915;
   --forge-copper: #E8B4B8;
   --forge-copper-bright: #F0C8CC;
   --forge-rose-gold: #C4A265;
@@ -146,10 +146,10 @@
   --text-3xl: 28px;
 
   /* ─── Elevation Colors ─── */
-  --elevation-0: #0E0B10;
-  --elevation-1: #15121A;
-  --elevation-2: #1C1822;
-  --elevation-3: #23202B;
+  --elevation-0: #0E0C0A;
+  --elevation-1: #14120E;
+  --elevation-2: #1B1915;
+  --elevation-3: #22201C;
 
   /* ─── Border Tokens ─── */
   --border-subtle: rgba(232,180,184,0.06);
@@ -173,14 +173,14 @@
 
 /* ─── Fusion B Dark Theme ─── */
 .dark {
-  --background: #0E0B10;
+  --background: #0E0C0A;
   --foreground: #F0EBE0;
-  --card: #15121A;
+  --card: #14120E;
   --card-foreground: #F0EBE0;
-  --popover: #15121A;
+  --popover: #14120E;
   --popover-foreground: #F0EBE0;
   --primary: #E8B4B8;
-  --primary-foreground: #0E0B10;
+  --primary-foreground: #0E0C0A;
   --secondary: rgba(232,180,184,0.04);
   --secondary-foreground: #B8A99A;
   --muted: rgba(232,180,184,0.03);
@@ -198,10 +198,10 @@
   --chart-4: #F5E6D3;
   --chart-5: #B8A99A;
   --radius: 0.75rem;
-  --sidebar: #0E0B10;
+  --sidebar: #0E0C0A;
   --sidebar-foreground: #F0EBE0;
   --sidebar-primary: #E8B4B8;
-  --sidebar-primary-foreground: #0E0B10;
+  --sidebar-primary-foreground: #0E0C0A;
   --sidebar-accent: rgba(232,180,184,0.08);
   --sidebar-accent-foreground: #F0C8CC;
   --sidebar-border: rgba(232,180,184,0.06);
@@ -214,7 +214,7 @@
   }
   body {
     @apply text-foreground font-sans text-[15px];
-    background-color: #080510;
+    background-color: #08070A;
     background-image:
       radial-gradient(ellipse 130% 90% at 15% -10%, rgba(196, 162, 101, 0.38) 0%, transparent 55%),
       radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.32) 0%, transparent 50%),
@@ -966,7 +966,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 .bg-deep-bg {
-  background-color: #0E0B10;
+  background-color: #0E0C0A;
 }
 
 /* ─── Transaction Timeline Animations ─── */

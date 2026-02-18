@@ -79,7 +79,7 @@ function IdentityCard({ user }: { user: User }) {
           }}
         >
           <div
-            className="w-full h-full rounded-full bg-[#15121A] flex items-center justify-center text-[28px] font-bold font-serif"
+            className="w-full h-full rounded-full bg-[#14120E] flex items-center justify-center text-[28px] font-bold font-serif"
             style={{ color: providerConfig.color }}
           >
             {initial}

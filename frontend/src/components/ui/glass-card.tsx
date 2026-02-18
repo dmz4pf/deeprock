@@ -344,7 +344,7 @@ const GlassInput = React.forwardRef<HTMLInputElement, GlassInputProps>(
           className
         )}
         style={{
-          backgroundColor: "#1C1822",
+          backgroundColor: "#1B1915",
           color: "#F0EBE0",
           borderColor: "rgba(232,180,184,0.08)",
           boxShadow: "inset 0 1px 2px rgba(0,0,0,0.2)",

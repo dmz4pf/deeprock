@@ -74,7 +74,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           className
         )}
         style={{
-          backgroundColor: "#15121A",
+          backgroundColor: "#14120E",
           border: `1px solid ${hovered ? `rgba(${config.rgb},0.2)` : "rgba(232,180,184,0.08)"}`,
           boxShadow: hovered
             ? `0 0 35px rgba(${config.rgb},0.15), 0 16px 40px rgba(0,0,0,0.3)`

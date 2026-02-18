@@ -382,7 +382,7 @@ function LoginPageInner() {
               height: 52,
               borderRadius: 10,
               border: `1px solid ${hoveredMethod === method.id ? `${method.accent}40` : "rgba(232,180,184,0.08)"}`,
-              background: hoveredMethod === method.id ? "rgba(232,180,184,0.04)" : "#15121A",
+              background: hoveredMethod === method.id ? "rgba(232,180,184,0.04)" : "#14120E",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",

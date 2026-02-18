@@ -341,7 +341,7 @@ export function Sidebar() {
                   <div className="w-8 h-8 rounded-full bg-[rgba(232,180,184,0.10)] flex items-center justify-center text-[13px] font-bold text-[#E8B4B8] font-serif">
                     {initial}
                   </div>
-                  <div className="absolute -bottom-px -right-px w-2 h-2 rounded-full bg-[#6FCF97] border-2 border-[#15121A]" />
+                  <div className="absolute -bottom-px -right-px w-2 h-2 rounded-full bg-[#6FCF97] border-2 border-[#14120E]" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium text-[#F0EBE0] truncate">

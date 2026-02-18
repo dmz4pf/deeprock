@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sv-landing {
-  --sv-black: #0E0B10;
+  --sv-black: #0E0C0A;
   --sv-cream: #F0EBE0;
   --sv-gold: #C4A265;
   --sv-gold-dim: rgba(196, 162, 101, 0.35);
@@ -15,7 +15,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
-  background-color: #080510;
+  background-color: #08070A;
   background-image:
     radial-gradient(ellipse 130% 90% at 15% -10%, rgba(196, 162, 101, 0.30) 0%, transparent 55%),
     radial-gradient(ellipse 110% 80% at 85% 5%, rgba(232, 180, 184, 0.25) 0%, transparent 50%),

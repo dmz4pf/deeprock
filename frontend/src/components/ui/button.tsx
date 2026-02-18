@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(232,180,184,0.5)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E0B10] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(232,180,184,0.5)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0E0C0A] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -34,8 +34,8 @@ const buttonVariants = cva(
           "hover:shadow-[0_0_20px_rgba(232,180,184,0.15)]",
         ],
         secondary: [
-          "bg-[#15121A] text-[#B8A99A] border border-[rgba(232,180,184,0.1)]",
-          "hover:bg-[#15121A]/80 hover:text-[#F0EBE0] hover:border-[rgba(232,180,184,0.2)]",
+          "bg-[#14120E] text-[#B8A99A] border border-[rgba(232,180,184,0.1)]",
+          "hover:bg-[#14120E]/80 hover:text-[#F0EBE0] hover:border-[rgba(232,180,184,0.2)]",
         ],
         ghost: [
           "text-[#5A5347]",
