@@ -17,7 +17,7 @@ Create an account with a passkey (biometric) to explore the full platform. No wa
 
 ## Demo Video
 
-https://github.com/user-attachments/assets/deeprock-demo.mp4
+https://youtu.be/YeziPNxaUwE
 
 ---
 
