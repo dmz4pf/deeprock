@@ -39,33 +39,28 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current;
     if (!el) return;
 
-    // Delay observer so the browser paints the invisible state first,
-    // making the entrance animation perceptible to the user.
-    const timer = setTimeout(() => {
-      const scrollRoot = findScrollParent(el);
+    const scrollRoot = findScrollParent(el);
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("qg-revealed");
-              if (!repeat) {
-                observer.unobserve(entry.target);
-              }
-            } else if (repeat) {
-              entry.target.classList.remove("qg-revealed");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("qg-revealed");
+            if (!repeat) {
+              observer.unobserve(entry.target);
             }
-          });
-        },
-        { threshold, rootMargin, root: scrollRoot }
-      );
+          } else if (repeat) {
+            entry.target.classList.remove("qg-revealed");
+          }
+        });
+      },
+      { threshold, rootMargin, root: scrollRoot }
+    );
 
-      observer.observe(el);
-      observerRef.current = observer;
-    }, 100);
+    observer.observe(el);
+    observerRef.current = observer;
 
     return () => {
-      clearTimeout(timer);
       observerRef.current?.disconnect();
       observerRef.current = null;
     };

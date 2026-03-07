@@ -31,7 +31,7 @@ export function QGScrollReveal({
       ref={ref}
       className={`${DIRECTION_CLASS[direction]} ${className}`}
       style={{
-        transitionDelay: `${staggerIndex * 100}ms`,
+        transitionDelay: `${staggerIndex * 40}ms`,
         ...style,
       }}
     >
