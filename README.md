@@ -17,7 +17,9 @@ Create an account with a passkey (biometric) to explore the full platform. No wa
 
 ## Demo Video
 
-https://youtu.be/bN0suUnwWes
+Full walkthrough: https://youtu.be/bN0suUnwWes
+
+Feature showcase: https://youtu.be/YeziPNxaUwE
 
 ---
 
