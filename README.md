@@ -202,9 +202,9 @@ All contracts deployed on Avalanche Fuji testnet. Source in `contracts/src/`.
 | `RWAPool` | `0xA0e5327605B8ee4DAcB1763699Fc83b565378DE7` | [View](https://testnet.snowtrace.io/address/0xA0e5327605B8ee4DAcB1763699Fc83b565378DE7) |
 | `RWAPaymaster` | `0xDA4887Aea4Fa70ceB4e2707BFBcaa10Bc4F82110` | [View](https://testnet.snowtrace.io/address/0xDA4887Aea4Fa70ceB4e2707BFBcaa10Bc4F82110) |
 | `MockUSDC` | `0x84b47706a096B6F997700C956dC2C5E545d65702` | [View](https://testnet.snowtrace.io/address/0x84b47706a096B6F997700C956dC2C5E545d65702) |
-| `P256SmartWallet` | Per-user, deterministic via factory | [EntryPoint](https://testnet.snowtrace.io/address/0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789) |
-| `P256WalletFactory` | Factory for CREATE2 wallet deployment | — |
-| `BiometricRegistry` | On-chain passkey public key registry | — |
+| `BiometricRegistry` | `0xe24fa9da76a0af2c878cc3088b523671d90d439c` | [View](https://testnet.snowtrace.io/address/0xe24fa9da76a0af2c878cc3088b523671d90d439c) |
+| `P256WalletFactory` | `0xe3BC2FEd36D4049afFA3CD3CfbF4d37F9Eab3a24` | [View](https://testnet.snowtrace.io/address/0xe3BC2FEd36D4049afFA3CD3CfbF4d37F9Eab3a24) |
+| `P256SmartWallet` | Per-user, deterministic via factory | [EntryPoint](https://testnet.snowtrace.io/address/0x0000000071727de22e5e9d8baf0edac6f37da032) |
 
 **What each contract does:**
 - `RWAPool`: USDC deposits, NAV-based share pricing, redemptions, fee logic
